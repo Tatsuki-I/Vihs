@@ -1,5 +1,6 @@
 deleteLine :: [String] -> Int -> [String]
-deleteLine str n = init (take n str) ++ reverse (take ((length str) - n) (reverse str))
+deleteLine str n | n > length str = str
+                 | otherwise = (init $ take n str) ++ (reverse $ take ((length str) - n) $ reverse str)
 
 main = do
     print str

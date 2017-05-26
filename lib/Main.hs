@@ -4,21 +4,26 @@ import qualified UI.HSCurses.Curses as Curses
 import qualified UI.HSCurses.CursesHelper as CursesH
 import Control.Exception (finally)
 import System.Posix      (usleep)
+import System.Exit       (exitWith, ExitCode (..) )
+import Control.Monad     (forever)
 
+screenBuffer :: [String] -> Int -> String
+screenBuffer strbuf height = unlines $ take (height - 1) strbuf
+
+{-
 main =
   do
     Curses.initCurses
     (height, width) <- Curses.scrSize
     strbuf <- createBuffer "test.txt"
-    let str = unlines $ take (height - 1) strbuf
-    Curses.mvWAddStr Curses.stdScr 0 0 str
+    Curses.mvWAddStr Curses.stdScr 0 0 $ screenBuffer strbuf height
     Curses.refresh
     Curses.getCh
-    let str2 = unlines $ take (height - 1) $ tail strbuf
-    Curses.mvWAddStr Curses.stdScr 0 0 str2
+    Curses.mvWAddStr Curses.stdScr 0 0 $ screenBuffer (tail strbuf) height
     Curses.refresh
     Curses.getCh
     Curses.endWin
+-}
 
 {-
 main = do

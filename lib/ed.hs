@@ -5,40 +5,37 @@ ed = do
   putStr "? "
   cmd <- getLine
   ed' cmd []
-  where
-    ed' :: String -> [String] -> IO [String]
-    ed' cmd buff
-      | cmd == "q" = return buff
-      | cmd == "a" = do
-        buff <- insert
-        print buff
-        putStr "? "
-        cmd <- getLine
-        ed' cmd buff
-      | (last cmd) == 'i' = do
-        buff2 <- insert
-        print $ init cmd
-        let buff3 = iCmd buff buff2 (read $ init cmd)
-        print buff3
-        putStr "? "
-        cmd <- getLine
-        ed' cmd buff3
-      | cmd == "l" = do
-        putStr $ unlines buff
-        putStr "? "
-        cmd <- getLine
-        ed' cmd buff
-      | (head cmd) == 'w' = do
-        print $ (words cmd) !! 1
-        buffToFile ((words cmd) !! 1) buff
-        putStr "? "
-        cmd <- getLine
-        ed' cmd buff
-      | otherwise = do
-        putStrLn $ "Vihs: command not found"
-        putStr "? "
-        cmd <- getLine
-        ed' cmd buff
+    where
+      ed' :: String -> [String] -> IO [String]
+      ed' cmd buff
+        | cmd == "q" = return buff
+        | cmd == "a" = do
+          buff <- insert
+          putStr "? "
+          cmd <- getLine
+          ed' cmd buff
+        | (last cmd) == 'i' = do
+          buff2 <- insert
+          print $ init cmd
+          let buff3 = iCmd buff buff2 (read $ init cmd)
+          putStr "? "
+          cmd <- getLine
+          ed' cmd buff3
+        | cmd == "l" = do
+          putStr $ unlines buff
+          putStr "? "
+          cmd <- getLine
+          ed' cmd buff
+        | (head cmd) == 'w' = do
+          buffToFile ((words cmd) !! 1) buff
+          putStr "? "
+          cmd <- getLine
+          ed' cmd buff
+        | otherwise = do
+          putStrLn $ "Vihs: command not found"
+          putStr "? "
+          cmd <- getLine
+          ed' cmd buff
 
 buffToFile :: String -> [String] -> IO ()
 buffToFile path str = writeFile path $ unlines str

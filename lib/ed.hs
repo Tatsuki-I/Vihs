@@ -2,40 +2,41 @@ import Text.Parsec
 
 ed :: IO [String]
 ed = do
-  putStr "? "
   cmd <- getLine
-  ed' cmd []
+  ed' cmd [] False
     where
-      ed' :: String -> [String] -> IO [String]
-      ed' cmd buff
-        | cmd == "q" = return buff
+      ed' :: String -> [String] -> Bool -> IO [String]
+      ed' cmd buff saved
+        | cmd == "q" && saved = return buff
+        | cmd == "q" && not saved = do
+          putStrLn "?"
+          newCmd <- getLine
+          if newCmd == "q"
+            then ed' newCmd buff True
+            else ed' newCmd buff False
         | cmd == "a" = do
           buff <- insert
-          putStr "? "
-          cmd <- getLine
-          ed' cmd buff
+          newCmd <- getLine
+          ed' newCmd buff False
         | (last cmd) == 'i' = do
           buff2 <- insert
           print $ init cmd
           let buff3 = iCmd buff buff2 (read $ init cmd)
-          putStr "? "
-          cmd <- getLine
-          ed' cmd buff3
+          newCmd <- getLine
+          ed' newCmd buff3 False
         | cmd == "l" = do
-          putStr $ unlines buff
-          putStr "? "
-          cmd <- getLine
-          ed' cmd buff
+          putStr $ unlines (map (++"$") buff)
+          newCmd <- getLine
+          ed' newCmd buff saved
         | (head cmd) == 'w' = do
           buffToFile ((words cmd) !! 1) buff
-          putStr "? "
-          cmd <- getLine
-          ed' cmd buff
+          print $ length (unlines buff)
+          newCmd <- getLine
+          ed' newCmd buff True
         | otherwise = do
-          putStrLn $ "Vihs: command not found"
-          putStr "? "
-          cmd <- getLine
-          ed' cmd buff
+          putStrLn "?"
+          newCmd <- getLine
+          ed' newCmd buff saved
 
 buffToFile :: String -> [String] -> IO ()
 buffToFile path str = writeFile path $ unlines str

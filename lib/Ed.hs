@@ -5,7 +5,7 @@ import Command
 
 ed :: IO ()
 ed =
-  (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) [] 0 True)
+  (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) [] 1 True)
     where
       ed' :: Command -> [String] -> Int -> Bool -> IO ()
       ed' cmd buff crrLine saved
@@ -17,13 +17,29 @@ ed =
             then ed' (setCmd newCmd) buff crrLine True
             else ed' (setCmd newCmd) buff crrLine False
         | (cmdName cmd) == 'a' =
-          insert >>= (\x -> (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\y -> ed' (setCmd y) x crrLine False))
+          insert >>= (\x -> (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\y -> ed' (setCmd y) (iCmd buff x $ (fromMaybe crrLine $ addr1 cmd) + 1) crrLine False))
         | (cmdName cmd) == 'i' =
-          insert >>= (\x -> (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\y -> ed' (setCmd y) (iCmd buff x $ fromMaybe 0 $ addr1 cmd) crrLine False))
+          insert >>= (\x -> (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\y -> ed' (setCmd y) (iCmd buff x $ fromMaybe crrLine $ addr1 cmd) crrLine False))
         | (cmdName cmd) == 'd' =
-          (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) (deleteLine buff $ fromMaybe 0 $ addr1 cmd) crrLine False)
+          (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) (deleteLine buff (fromMaybe crrLine $ addr1 cmd) (fromMaybe 1 $ addr2 cmd)) crrLine False)
         | (cmdName cmd) == 'l' = do
-          putStr $ unlines (map (++"$") buff)
+          let allLines = (map (++"$") buff)
+          putStr $
+            unlines $ drop
+              ((fromMaybe crrLine $ addr1 cmd) - 1)
+              (reverse (drop
+                ((length allLines) - ((fromMaybe 1 $ addr1 cmd) + (fromMaybe 1 $ addr2 cmd) - 1))
+                $ reverse allLines))
+          (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) buff crrLine saved)
+        | (cmdName cmd) == 'n' = do
+          let infNo = (map (show) (take (length buff) [1, 2..]))
+          let allLines = (zipWith (++) (map (take 8) ((map (++"        ")) infNo)) (map (++"$") buff))
+          putStr $
+            unlines $ drop
+              ((fromMaybe crrLine $ addr1 cmd) - 1)
+              (reverse (drop
+                ((length allLines) - ((fromMaybe 1 $ addr1 cmd) + (fromMaybe 1 $ addr2 cmd) - 1))
+                $ reverse allLines))
           (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) buff crrLine saved)
         | (cmdName cmd) == 'w' = do
           if (isNothing $ param cmd)
@@ -52,8 +68,9 @@ insert = insert' [] False
           then insert' buff True
           else insert' (buff ++ [str]) False
 
-deleteLine :: [String] -> Int ->[String]
-deleteLine str line | line <= length str && line >= 0 && line - 1 <= length str =
-  (take (line - 1) str) ++ (reverse . take ((length str) - line) $ reverse str)
+deleteLine :: [String] -> Int -> Int ->[String]
+deleteLine str line times
+  | line <= length str && line >= 0 && line - 1 <= length str =
+    (take (line - 1) str) ++ (reverse . take ((length str) - line - times + 1) $ reverse str)
 
 main = ed

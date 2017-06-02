@@ -1,12 +1,14 @@
+module Command where
+
 import Data.Either
 import Text.Parsec
 import Text.Parsec.String
 
 data Command = Command
-  { addr1 :: Maybe Int
-  , addr2 :: Maybe Int
-  , cmd   :: Char
-  , param :: Maybe String
+  { addr1   :: Maybe Int
+  , addr2   :: Maybe Int
+  , cmdName :: Char
+  , param   :: Maybe String
   } deriving Show 
 
 setCmd :: String -> Command
@@ -22,7 +24,7 @@ setCmd str = Command
     then Nothing
     else (Just $ (words str) !! 1))
       where
-        addrs = (parseIntList parseText $ init $ (words str) !! 0)
+        addrs = (parseIntList $ init $ (words str) !! 0)
 
 parseInt :: Parser Int
 parseInt = do
@@ -32,14 +34,8 @@ parseInt = do
 parseText :: Parser [Int]
 parseText = parseInt `sepBy1` (char ',')
 
-parseIntList :: Parser [Int] -> String -> [Int]
-parseIntList parser input
-  = case (parse parser "" input) of
+parseIntList :: String -> [Int]
+parseIntList input
+  = case (parse parseText "" input) of
     Left err -> []
     Right x -> x
-
-main = do
-  print $ setCmd "2,3d"
-  print $ setCmd "w aaa.txt"
-  print $ setCmd "1i"
-  print $ setCmd "l"

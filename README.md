@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/Tatsuki-I/Vihs.svg?branch=master)](https://travis-ci.org/Tatsuki-I/Vihs)
+[![Build status](https://ci.appveyor.com/api/projects/status/1furioph5w7o3fr3?svg=true)](https://ci.appveyor.com/project/Tatsuki-I/vihs)
+
 # Vihs
 Vim like Text editor by Haskell.
 

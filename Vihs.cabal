@@ -3,12 +3,12 @@ version:             0.1.0.0
 -- synopsis:
 -- description:
 homepage:            https://github.com/githubuser/Vihs#readme
-license:             MIT
-license-file:        LICENSE
+license:             Apache-2.0
+license-file:        LICENSE.md
 author:              Tatsuki-I
-maintainer:          example@example.com
+maintainer:          Tatsuki-I <tatsuki.devel@gmail.com>
 copyright:           2017 Tatsuki-I
-category:            Web
+category:            Editor
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10

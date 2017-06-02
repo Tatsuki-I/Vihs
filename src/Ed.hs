@@ -35,7 +35,7 @@ ed =
           (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) buff crrLine saved)
         | (cmdName cmd) == 'n' = do
           let infNo = (map (show) (take (length buff) [1, 2..]))
-          let allLines = (zipWith (++) (map (take 8) ((map (++"        ")) infNo)) (map (++"$") buff))
+          let allLines = (zipWith (++) (map (take 8) (map (++ (repeat ' ')) infNo)) (map (++"$") buff))
           putStr $
             unlines $ drop
               ((fromMaybe crrLine $ addr1 cmd) - 1)

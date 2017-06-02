@@ -26,9 +26,9 @@ ed =
           putStr $ unlines (map (++"$") buff)
           (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) buff saved)
         | (cmdName cmd) == 'w' = do
-          buffToFile (fromMaybe "untitled.txt" (param cmd)) buff
-          print $ length (unlines buff)
-          (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) buff True)
+          if (isNothing $ param cmd)
+            then putStrLn "?" >> (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) buff saved)
+            else (buffToFile (fromJust (param cmd)) buff) >> (print (length (unlines buff)) >> (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) buff True))
         | otherwise = do
           putStrLn "?"
           (fromMaybe "" <$> (runInputT defaultSettings $ getInputLine "")) >>= (\x -> ed' (setCmd x) buff saved)

@@ -5,6 +5,7 @@ import Data.Maybe
 import Text.Parsec
 import Command
 import ReadWrite
+import Delete
 
 ed :: [String] -> IO ()
 ed args =
@@ -69,8 +70,3 @@ insert = insert' [] False
         if str == "."
           then insert' buff True
           else insert' (buff ++ [str]) False
-
-deleteLine :: [String] -> Int -> Int ->[String]
-deleteLine str line times
-  | line <= length str && line >= 0 && line - 1 <= length str =
-    (take (line - 1) str) ++ (reverse . take ((length str) - line - times + 1) $ reverse str)

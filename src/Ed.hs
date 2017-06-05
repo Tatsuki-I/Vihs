@@ -1,11 +1,11 @@
 module Ed where
 
-import System.Console.Haskeline
-import Data.Maybe
-import Text.Parsec
-import Command
-import ReadWrite
-import Delete
+import           Command
+import           Data.Maybe
+import           Delete
+import           ReadWrite
+import           System.Console.Haskeline
+import           Text.Parsec
 
 ed :: [String] -> IO ()
 ed args =
@@ -92,7 +92,7 @@ ed args =
               putStr $ unlines $
                 drop
                   (fromMaybe crrLine (addr1 cmd) - 1)
-                  (reverse 
+                  (reverse
                     (drop
                       (length allLines - (fromMaybe 1 (addr1 cmd) + fromMaybe 1 (addr2 cmd) - 1))
                       $ reverse allLines))

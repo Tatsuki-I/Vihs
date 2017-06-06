@@ -22,19 +22,16 @@ ed args = do
                         newCmd <- inputCmd
                         ed' newCmd fileName buff crrLine $ if cmdName newCmd == 'q' then True else False
                 'a' ->
-                    insert
-                    >>= (\x -> inputCmd >>= (\y ->
-                        ed' y fileName (iCmd buff x $ fromMaybe crrLine (addr1 cmd) + 1) crrLine False))
+                    insert >>= (\x -> inputCmd >>= (\y ->
+                    ed' y fileName (iCmd buff x $ fromMaybe crrLine (addr1 cmd) + 1) crrLine False))
                 'i' ->
-                    insert
-                    >>= (\x -> inputCmd >>= (\y ->
-                        ed' y fileName (iCmd buff x $ fromMaybe crrLine $ addr1 cmd) crrLine False))
+                    insert >>= (\x -> inputCmd >>= (\y ->
+                    ed' y fileName (iCmd buff x $ fromMaybe crrLine $ addr1 cmd) crrLine False))
                 'd' ->
-                    inputCmd
-                    >>= (\x ->
-                        ed' x fileName (deleteLine buff (fromMaybe crrLine $ addr1 cmd) (fromMaybe 1 $ addr2 cmd)) crrLine False)
+                    inputCmd >>= (\x ->
+                    ed' x fileName (deleteLine buff (fromMaybe crrLine $ addr1 cmd) (fromMaybe 1 $ addr2 cmd)) crrLine False)
                 'l' -> do
-                    let allLines = map (++"$") buff
+                    let allLines = addDll buff
                     putStr $ unlines $
                         drop
                             (fromMaybe crrLine (addr1 cmd) - 1)
@@ -42,11 +39,10 @@ ed args = do
                                 (drop
                                     (length allLines - (fromMaybe 1 (addr1 cmd) + fromMaybe 1 (addr2 cmd) - 1))
                                     $ reverse allLines))
-                    inputCmd >>= (\x ->
-                        ed' x fileName buff crrLine saved)
+                    inputCmd >>= (\x -> ed' x fileName buff crrLine saved)
                 'n' -> do
                     let infNo = map show (take (length buff) [1, 2..])
-                    let allLines = zipWith (++) (map (take 8 . (++ repeat ' ')) infNo) (map (++"$") buff)
+                    let allLines = zipWith (++) (map (take 8 . (++ repeat ' ')) infNo) (addDll buff)
                     putStr $ unlines $
                         drop
                             (fromMaybe crrLine (addr1 cmd) - 1)
@@ -54,25 +50,23 @@ ed args = do
                                 (drop
                                     (length allLines - (fromMaybe 1 (addr1 cmd) + fromMaybe 1 (addr2 cmd) - 1))
                                     $ reverse allLines))
-                    inputCmd >>= (\x ->
-                        ed' x fileName buff crrLine saved)
+                    inputCmd >>= (\x -> ed' x fileName buff crrLine saved)
                 'w' ->
                     if isNothing $ param cmd
                         then putStrLn "?"
-                            >> inputCmd >>= (\x ->
-                                ed' x fileName buff crrLine saved)
+                            >> inputCmd >>= (\x -> ed' x fileName buff crrLine saved)
                         else buffToFile (fromJust (param cmd)) buff
                             >> (print (length (unlines buff))
-                            >> inputCmd >>= (\x ->
-                                ed' x fileName buff crrLine True))
+                            >> inputCmd >>= (\x -> ed' x fileName buff crrLine True))
                 otherwise -> do
                     putStrLn "?"
-                    inputCmd
-                    >>= (\x ->
-                        ed' x fileName buff crrLine saved)
+                    inputCmd >>= (\x -> ed' x fileName buff crrLine saved)
 
 inputCmd :: IO Command
 inputCmd = setCmd <$> fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
+
+addDll :: [String] -> [String]
+addDll buff = map (++"$") buff
 
 iCmd :: [String] -> [String] -> Int -> [String]
 iCmd buff buff2 line =

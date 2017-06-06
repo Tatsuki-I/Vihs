@@ -1,9 +1,8 @@
-import           Data.Either
-import           Text.Parsec
+import           Control.Applicative
+import qualified Text.Parsec as P
 import           Text.Parsec.String
 
-data Command
-        = Command
+data Command = Command
         { addr    :: Maybe Addr
         , cmdName :: Char
         , param   :: Maybe String
@@ -31,53 +30,44 @@ parseCmd = Command
 
 parseAddr :: Parser (Maybe Addr)
 parseAddr = optional parseAddr'
-        where
-                parseAddr'
-                        =   parseHeadToEOF
-                        <|> parseCrrToEOF
-                        <|> parsePair
-                        <|> parseSingle
+    where
+        parseAddr'
+                =   parseHeadToEOF
+                <|> parseCrrToEOF
+                <|> parseAddrs
 
-                parseHeadToEOF = char ','
-                        *> pure $ AddrPair AddrLine 1 AddrEOF
+        parseHeadToEOF = P.char ','
+                *> pure (AddrPair (AddrLine 1) AddrEOF)
 
-                parseCrrToEOF = char ';'
-                        *> pure $ AddrPair AddrCrrLine AddrEOF
+        parseCrrToEOF = P.char ';'
+                *> pure (AddrPair addrCrrLine AddrEOF)
 
-                parsePair = AddrPair
-                        <$> head parseIntList
-                        <$> last parseIntList
-
-                parseSingle = AddrSingle
-                        <$> head parseIntList
+        parseAddrs = do
+                (x:xs) <- parseIntList
+                return $ if null xs
+                             then AddrSingle $ AddrLine x
+                             else AddrPair (AddrLine x) (AddrLine $ last xs)
 
 parseCmdName :: Parser Char
-parseCmdName = letter
+parseCmdName = P.letter
 
 parseParam :: Parser (Maybe String)
-parseParam = spaces
-        *> (listToMaybeList <$> many anyChar)
-                where
-                        listToMaybeList [] = Nothing
-                        listToMaybeList xs = Just xs
+parseParam = P.spaces
+        *> (listToMaybeList <$> P.many P.anyChar)
+            where
+                listToMaybeList [] = Nothing
+                listToMaybeList xs = Just xs
 
-
-parseIntList :: String -> [Int]
-parseIntList input
-  = case parse parseText "" input of
-    Left err -> []
-    Right x  -> x
-
-parseText :: Parser [Int]
-parseText = parseInt `sepBy1` char ','
+parseIntList :: Parser [Int]
+parseIntList = parseInt `P.sepBy1` P.char ','
 
 parseInt :: Parser Int
 parseInt = do
-        value <- many1 digit
+        value <- P.many1 P.digit
         return (read value)
 
 main = do
-        print $ parse parseCmd "" "w test.txt"
-        print $ parse parseCmd "" "1,2a"
-        print $ parse parseCmd "" ",d"
+        print $ P.parse parseCmd "" "w test.txt"
+        print $ P.parse parseCmd "" "1,2a"
+        print $ P.parse parseCmd "" ",d"
 

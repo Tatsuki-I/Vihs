@@ -10,38 +10,29 @@ import           Text.Parsec
 ed :: [String] -> IO ()
 ed args = do
     x <- if null args then return [] else createBuffer (head args)
-    y <- setCmd <$> fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
+    y <- inputCmd
     ed' y (if null args then [] else (head args)) x 1 True
         where
             ed' :: Command -> String -> [String] -> Int -> Bool -> IO ()
             ed' cmd fileName buff crrLine saved  = case cmdName cmd of
-                -- | cmdName cmd == 'q' && saved = return ()
-                -- | cmdName cmd == 'q' && not saved = do
                 'q' -> 
-                    if saved 
-                        then return () 
-                        else do
-                            putStrLn "?"
-                            newCmd <- fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
-                            if cmdName (setCmd newCmd) == 'q'
-                                then
-                                    ed' (setCmd newCmd) fileName buff crrLine True
-                                else
-                                    ed' (setCmd newCmd) fileName buff crrLine False
+                    if saved then return () 
+                    else do
+                        putStrLn "?"
+                        newCmd <- inputCmd
+                        ed' newCmd fileName buff crrLine $ if cmdName newCmd == 'q' then True else False
                 'a' ->
                     insert
-                    >>= (\x -> (fromMaybe "" <$> runInputT defaultSettings (getInputLine ""))
-                    >>= (\y ->
-                        ed' (setCmd y) fileName (iCmd buff x $ fromMaybe crrLine (addr1 cmd) + 1) crrLine False))
+                    >>= (\x -> inputCmd >>= (\y ->
+                        ed' y fileName (iCmd buff x $ fromMaybe crrLine (addr1 cmd) + 1) crrLine False))
                 'i' ->
                     insert
-                    >>= (\x -> (fromMaybe "" <$> runInputT defaultSettings (getInputLine ""))
-                    >>= (\y ->
-                        ed' (setCmd y) fileName (iCmd buff x $ fromMaybe crrLine $ addr1 cmd) crrLine False))
+                    >>= (\x -> inputCmd >>= (\y ->
+                        ed' y fileName (iCmd buff x $ fromMaybe crrLine $ addr1 cmd) crrLine False))
                 'd' ->
-                    fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
+                    inputCmd
                     >>= (\x ->
-                        ed' (setCmd x) fileName (deleteLine buff (fromMaybe crrLine $ addr1 cmd) (fromMaybe 1 $ addr2 cmd)) crrLine False)
+                        ed' x fileName (deleteLine buff (fromMaybe crrLine $ addr1 cmd) (fromMaybe 1 $ addr2 cmd)) crrLine False)
                 'l' -> do
                     let allLines = map (++"$") buff
                     putStr $ unlines $
@@ -51,9 +42,8 @@ ed args = do
                                 (drop
                                     (length allLines - (fromMaybe 1 (addr1 cmd) + fromMaybe 1 (addr2 cmd) - 1))
                                     $ reverse allLines))
-                    fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
-                    >>= (\x ->
-                        ed' (setCmd x) fileName buff crrLine saved)
+                    inputCmd >>= (\x ->
+                        ed' x fileName buff crrLine saved)
                 'n' -> do
                     let infNo = map show (take (length buff) [1, 2..])
                     let allLines = zipWith (++) (map (take 8 . (++ repeat ' ')) infNo) (map (++"$") buff)
@@ -64,25 +54,25 @@ ed args = do
                                 (drop
                                     (length allLines - (fromMaybe 1 (addr1 cmd) + fromMaybe 1 (addr2 cmd) - 1))
                                     $ reverse allLines))
-                    fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
-                    >>= (\x ->
-                        ed' (setCmd x) fileName buff crrLine saved)
+                    inputCmd >>= (\x ->
+                        ed' x fileName buff crrLine saved)
                 'w' ->
                     if isNothing $ param cmd
                         then putStrLn "?"
-                            >> fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
-                            >>= (\x ->
-                                ed' (setCmd x) fileName buff crrLine saved)
+                            >> inputCmd >>= (\x ->
+                                ed' x fileName buff crrLine saved)
                         else buffToFile (fromJust (param cmd)) buff
                             >> (print (length (unlines buff))
-                            >> fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
-                            >>= (\x ->
-                                ed' (setCmd x) fileName buff crrLine True))
+                            >> inputCmd >>= (\x ->
+                                ed' x fileName buff crrLine True))
                 otherwise -> do
                     putStrLn "?"
                     fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
                     >>= (\x ->
                         ed' (setCmd x) fileName buff crrLine saved)
+
+inputCmd :: IO Command
+inputCmd = setCmd <$> fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
 
 iCmd :: [String] -> [String] -> Int -> [String]
 iCmd buff buff2 line =

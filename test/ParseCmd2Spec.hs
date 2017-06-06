@@ -1,7 +1,7 @@
 module ParseCmd2Spec (spec) where
 
-import Test.Hspec
-import ParseCmd2
+import           ParseCmd2
+import           Test.Hspec
 
 spec :: Spec
 spec = do

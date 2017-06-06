@@ -58,9 +58,8 @@ ed args = do
                         else buffToFile (fromJust (param cmd)) buff
                             >> (print (length (unlines buff))
                             >> inputCmd >>= (\x -> ed' x fileName buff crrLine True))
-                otherwise -> do
-                    putStrLn "?"
-                    inputCmd >>= (\x -> ed' x fileName buff crrLine saved)
+                otherwise ->
+                    putStrLn "?" >> inputCmd >>= (\x -> ed' x fileName buff crrLine saved)
 
 inputCmd :: IO Command
 inputCmd = setCmd <$> fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
@@ -70,16 +69,16 @@ addDll buff = map (++"$") buff
 
 iCmd :: [String] -> [String] -> Int -> [String]
 iCmd buff buff2 line =
-    take (line - 1) buff ++ buff2 ++ reverse (take (length buff - line + 1) (reverse buff))
+        take (line - 1) buff ++ buff2 ++ reverse (take (length buff - line + 1) (reverse buff))
 
 insert :: IO [String]
 insert = insert' [] False
     where
         insert' :: [String] -> Bool -> IO [String]
         insert' buff done
-            | done = return buff
-            | otherwise = do
-                str <- getLine
-                if str == "."
-                    then insert' buff True
-                    else insert' (buff ++ [str]) False
+                | done = return buff
+                | otherwise = do
+                        str <- getLine
+                        if str == "."
+                                then insert' buff True
+                                else insert' (buff ++ [str]) False

@@ -21,6 +21,7 @@ library
                      , Insert
                      , ReadWrite
                      , Delete
+                     , ParseCmd2
   build-depends:       base >= 4.7 && < 5
                      , parsec
                      , haskeline
@@ -39,6 +40,7 @@ test-suite Vihs-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   other-modules:       InsertSpec
+                     , ParseCmd2Spec
   build-depends:       base
                      , Vihs
                      , hspec

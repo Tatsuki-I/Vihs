@@ -4,10 +4,9 @@ import           Insert
 import           Test.Hspec
 
 spec :: Spec
-spec = do
+spec =
         describe "insert" $ do
-                it "standard" $ do
+                it "standard" $
                         insert "aaa" "b" 2 `shouldBe` "aaba"
-        describe "insertBuff" $ do
-                it "standard" $ do
+                it "standard" $
                         insertBuff ["AAA", "BBB", "CCC"] "b" 1 2 `shouldBe` ["AAA", "BBB", "CbCC"]

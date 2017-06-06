@@ -67,9 +67,9 @@ ed args = do
                                 ed' x fileName buff crrLine True))
                 otherwise -> do
                     putStrLn "?"
-                    fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
+                    inputCmd
                     >>= (\x ->
-                        ed' (setCmd x) fileName buff crrLine saved)
+                        ed' x fileName buff crrLine saved)
 
 inputCmd :: IO Command
 inputCmd = setCmd <$> fromMaybe "" <$> runInputT defaultSettings (getInputLine "")

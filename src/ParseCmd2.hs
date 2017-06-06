@@ -74,10 +74,3 @@ parseInt :: Parser Int
 parseInt = do
         value <- P.many1 P.digit
         return (read value)
-
-main = do
-        print $ P.parse parseCmd "" "w test.txt"
-        print $ P.parse parseCmd "" "1,2a"
-        print $ P.parse parseCmd "" ",d"
-        print $ setCmd "e test"
-        print $ setCmd ""

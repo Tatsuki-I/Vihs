@@ -1,3 +1,5 @@
+module ParseCmd2 where
+
 import           Control.Applicative
 import qualified Text.Parsec as P
 import           Text.Parsec.String
@@ -22,6 +24,13 @@ data AddrVal
 addrCrrLine :: AddrVal
 addrCrrLine = AddrCrr 0
 
+setCmd :: String -> Command
+setCmd str = case P.parse parseCmd "" str of
+        Right cmd -> cmd
+        Left  err -> Command Nothing ' ' Nothing
+                --putStrLn ("No match: " ++ show err)
+                
+                
 parseCmd :: Parser Command
 parseCmd = Command
         <$> parseAddr
@@ -70,4 +79,5 @@ main = do
         print $ P.parse parseCmd "" "w test.txt"
         print $ P.parse parseCmd "" "1,2a"
         print $ P.parse parseCmd "" ",d"
-
+        print $ setCmd "e test"
+        print $ setCmd ""

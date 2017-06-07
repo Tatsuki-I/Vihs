@@ -38,24 +38,12 @@ ed args = do
                     ed' x edArgs {buff = (deleteLine (buff edArgs) (fromMaybe (crrLine edArgs) $ addr1 cmd) (fromMaybe 1 $ addr2 cmd)), saved = False})
                 'l' -> do
                     let allLines = addDll $ buff edArgs
-                    putStr $ unlines $
-                        drop
-                            (fromMaybe (crrLine edArgs) (addr1 cmd) - 1)
-                            (reverse
-                                (drop
-                                    (length allLines - (fromMaybe 1 (addr1 cmd) + fromMaybe 1 (addr2 cmd) - 1))
-                                    $ reverse allLines))
+                    printBuff cmd edArgs allLines
                     inputCmd >>= (\x -> ed' x edArgs)
                 'n' -> do
                     let infNo = map show (take (length $ buff edArgs) [1, 2..])
                     let allLines = zipWith (++) (map (take 8 . (++ repeat ' ')) infNo) (addDll $ buff edArgs)
-                    putStr $ unlines $
-                        drop
-                            (fromMaybe (crrLine edArgs) (addr1 cmd) - 1)
-                            (reverse
-                                (drop
-                                    (length allLines - (fromMaybe 1 (addr1 cmd) + fromMaybe 1 (addr2 cmd) - 1))
-                                    $ reverse allLines))
+                    printBuff cmd edArgs allLines
                     inputCmd >>= (\x -> ed' x edArgs)
                 'w' ->
                     if isNothing $ param cmd
@@ -72,6 +60,12 @@ inputCmd = setCmd <$> fromMaybe "" <$> runInputT defaultSettings (getInputLine "
 
 addDll :: [String] -> [String]
 addDll buff = map (++"$") buff
+
+printBuff :: Command -> EdArgs -> [String] -> IO ()
+printBuff cmd edArgs allLines = 
+        putStr $ unlines $ drop 
+                (fromMaybe (crrLine edArgs) (addr1 cmd) - 1)
+                (reverse (drop (length allLines - (fromMaybe 1 (addr1 cmd) + fromMaybe 1 (addr2 cmd) - 1)) $ reverse allLines)) 
 
 iCmd :: [String] -> [String] -> Int -> [String]
 iCmd buff buff2 line =

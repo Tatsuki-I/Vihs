@@ -37,13 +37,11 @@ ed args = do
                     inputCmd >>= (\x ->
                     ed' x edArgs {buff = (deleteLine (buff edArgs) (fromMaybe (crrLine edArgs) $ addr1 cmd) (fromMaybe 1 $ addr2 cmd)), saved = False})
                 'l' -> do
-                    let allLines = addDll $ buff edArgs
-                    printBuff cmd edArgs allLines
+                    printBuff cmd edArgs $ addDll $ buff edArgs
                     inputCmd >>= (\x -> ed' x edArgs)
                 'n' -> do
                     let infNo = map show (take (length $ buff edArgs) [1, 2..])
-                    let allLines = zipWith (++) (map (take 8 . (++ repeat ' ')) infNo) (addDll $ buff edArgs)
-                    printBuff cmd edArgs allLines
+                    printBuff cmd edArgs $ zipWith (++) (map (take 8 . (++ repeat ' ')) infNo) (addDll $ buff edArgs)
                     inputCmd >>= (\x -> ed' x edArgs)
                 'w' ->
                     if isNothing $ param cmd

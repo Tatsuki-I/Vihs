@@ -2,6 +2,8 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/1furioph5w7o3fr3?svg=true)](https://ci.appveyor.com/project/Tatsuki-I/vihs)
 [![CircleCI](https://circleci.com/gh/Tatsuki-I/Vihs.svg?style=svg)](https://circleci.com/gh/Tatsuki-I/Vihs)
 [![Coverage Status](https://coveralls.io/repos/github/Tatsuki-I/Vihs/badge.svg?branch=master)](https://coveralls.io/github/Tatsuki-I/Vihs?branch=master)
+[![Code Climate](https://codeclimate.com/github/Tatsuki-I/Vihs/badges/gpa.svg)](https://codeclimate.com/github/codeclimate/codeclimate)
+[![Issue Count](https://codeclimate.com/github/Tatsuki-I/Vihs/badges/issue_count.svg)](https://codeclimate.com/github/codeclimate/codeclimate)
 
 # Vihs
 Vim like Text editor by Haskell.

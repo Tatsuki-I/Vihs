@@ -17,7 +17,7 @@ ed :: [String] -> IO ()
 ed args = do
     x <- if null args then return [] else createBuffer (head args)
     y <- inputCmd
-    ed' y (EdArgs (if null args then [] else (head args)) x 1 True)
+    ed' y (EdArgs (if null args then [] else head args) x 1 True)
         where
             ed' :: Command -> EdArgs -> IO ()
             ed' cmd edArgs = case cmdName cmd of
@@ -26,38 +26,38 @@ ed args = do
                     else do
                         putStrLn "?"
                         newCmd <- inputCmd
-                        ed' newCmd edArgs {saved = (if cmdName newCmd == 'q' then True else False)}
+                        ed' newCmd edArgs {saved = cmdName newCmd == 'q'}
                 'a' ->
                     insert >>= (\x -> inputCmd >>= (\y ->
-                    ed' y edArgs {buff = (iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) (addr1 cmd) + 1), saved = False}))
+                    ed' y edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) (addr1 cmd) + 1, saved = False}))
                 'i' ->
                     insert >>= (\x -> inputCmd >>= (\y ->
-                    ed' y edArgs {buff = (iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) $ addr1 cmd), saved = False}))
+                    ed' y edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) $ addr1 cmd, saved = False}))
                 'd' ->
                     inputCmd >>= (\x ->
-                    ed' x edArgs {buff = (deleteLine (buff edArgs) (fromMaybe (crrLine edArgs) $ addr1 cmd) (fromMaybe 1 $ addr2 cmd)), saved = False})
+                    ed' x edArgs {buff = deleteLine (buff edArgs) (fromMaybe (crrLine edArgs) $ addr1 cmd) (fromMaybe 1 $ addr2 cmd), saved = False})
                 'l' -> do
                     printBuff cmd edArgs $ addDll $ buff edArgs
-                    inputCmd >>= (\x -> ed' x edArgs)
+                    inputCmd >>= (`ed'` edArgs)
                 'n' -> do
                     let infNo = map show (take (length $ buff edArgs) [1, 2..])
                     printBuff cmd edArgs $ zipWith (++) (map (take 8 . (++ repeat ' ')) infNo) (addDll $ buff edArgs)
-                    inputCmd >>= (\x -> ed' x edArgs)
+                    inputCmd >>= (`ed'` edArgs)
                 'w' ->
                     if isNothing $ param cmd
                         then putStrLn "?"
-                            >> inputCmd >>= (\x -> ed' x edArgs)
+                            >> inputCmd >>= (`ed'` edArgs)
                         else buffToFile (fromJust (param cmd)) (buff edArgs)
                             >> (print (length (unlines $ buff edArgs))
-                            >> inputCmd >>= (\x -> ed' x edArgs {saved = True}))
-                otherwise ->
-                    putStrLn "?" >> inputCmd >>= (\x -> ed' x edArgs)
+                            >> inputCmd >>= (`ed'` edArgs {saved = True}))
+                _ ->
+                    putStrLn "?" >> inputCmd >>= (`ed'` edArgs)
 
 inputCmd :: IO Command
-inputCmd = setCmd <$> fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
+inputCmd = setCmd . fromMaybe "" <$> runInputT defaultSettings (getInputLine "")
 
 addDll :: [String] -> [String]
-addDll buff = map (++"$") buff
+addDll = map (++"$")
 
 printBuff :: Command -> EdArgs -> [String] -> IO ()
 printBuff cmd edArgs allLines = 

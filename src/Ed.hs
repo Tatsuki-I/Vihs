@@ -28,14 +28,14 @@ ed args = do
                         newCmd <- inputCmd
                         ed' newCmd edArgs {saved = cmdName newCmd == 'q'}
                 'a' ->
-                    insert >>= (\x -> inputCmd >>= (\y ->
-                    ed' y edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) (addr1 cmd) + 1, saved = False}))
+                    insert >>= (\x -> inputCmd >>=
+                    (`ed'` edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) (addr1 cmd) + 1, saved = False}))
                 'i' ->
-                    insert >>= (\x -> inputCmd >>= (\y ->
-                    ed' y edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) $ addr1 cmd, saved = False}))
+                    insert >>= (\x -> inputCmd >>=
+                    (`ed'` edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) $ addr1 cmd, saved = False}))
                 'd' ->
-                    inputCmd >>= (\x ->
-                    ed' x edArgs {buff = deleteLine (buff edArgs) (fromMaybe (crrLine edArgs) $ addr1 cmd) (fromMaybe 1 $ addr2 cmd), saved = False})
+                    inputCmd >>=
+                    (`ed'` edArgs {buff = deleteLine (buff edArgs) (fromMaybe (crrLine edArgs) $ addr1 cmd) (fromMaybe 1 $ addr2 cmd), saved = False})
                 'l' -> do
                     printBuff cmd edArgs $ addDll $ buff edArgs
                     inputCmd >>= (`ed'` edArgs)

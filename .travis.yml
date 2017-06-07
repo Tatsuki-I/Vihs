@@ -33,14 +33,13 @@ before_install:
 
 install:
 # Build dependencies
-- stack --no-terminal --install-ghc test --only-dependencies
+- stack --install-ghc test --only-dependencies
 
 script:
 # Build the package, its tests, and its docs and run the tests
 - stack --no-terminal test --haddock --no-haddock-deps
-- stack test :Vihs-test --no-terminal --coverage
+- stack test --coverage
 
 after_script:
 - travis_retry curl -L https://github.com/rubik/stack-hpc-coveralls/releases/download/v0.0.3.0/shc-linux-x64-$GHCVER.tar.bz2 | tar -xj
 - stack install codecov-haskell && codecov-haskell
-- ./shc vihs Vihs-test

@@ -33,6 +33,7 @@ before_install:
 
 install:
 # Build dependencies
+- stack --install-ghc install --only-dependencies
 - stack --install-ghc test --only-dependencies
 
 script:
@@ -43,4 +44,4 @@ script:
 
 after_script:
 - travis_retry curl -L https://github.com/rubik/stack-hpc-coveralls/releases/download/v0.0.3.0/shc-linux-x64-$GHCVER.tar.bz2 | tar -xj
-- stack install codecov-haskell && codecov-haskell
+- ./shc vihs Vihs-test

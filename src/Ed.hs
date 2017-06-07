@@ -6,6 +6,7 @@ import           Delete
 import           ReadWrite
 import           System.Console.Haskeline
 import           Text.Parsec
+import           Control.Monad (unless)
 
 data EdArgs = EdArgs
         { fileName :: String
@@ -22,8 +23,7 @@ ed args = do
             ed' :: Command -> EdArgs -> IO ()
             ed' cmd edArgs = case cmdName cmd of
                 'q' -> 
-                    if saved edArgs then return () 
-                    else do
+                    unless (saved edArgs) $ do
                         putStrLn "?"
                         newCmd <- inputCmd
                         ed' newCmd edArgs {saved = cmdName newCmd == 'q'}

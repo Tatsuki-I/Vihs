@@ -5,6 +5,7 @@ import           Control.Monad            (unless)
 import           Data.Maybe
 import           Delete
 import           ReadWrite
+import           Safe                     (headMay)
 import           System.Console.Haskeline
 import           Text.Parsec
 
@@ -16,9 +17,8 @@ data EdArgs = EdArgs
 
 ed :: [String] -> IO ()
 ed args = do
-        x <- if null args then return [] else createBuffer (head args)
-        y <- inputCmd
-        ed' y (EdArgs (if null args then [] else head args) x 1 True)
+        x <- if null args then return [] else createBuffer $ fromMaybe "" $ headMay args
+        inputCmd >>= (`ed'` EdArgs (if null args then [] else fromMaybe "" $ headMay args) x 1 True)
 
 ed' :: Command -> EdArgs -> IO ()
 ed' cmd edArgs = case cmdName cmd of

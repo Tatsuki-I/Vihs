@@ -21,7 +21,7 @@ fixAddr e (AddrCrr dl) = crrLine e + dl
 fixAddr e AddrEOF      = length $ buff e
 
 addr1 :: Command -> EdArgs -> Int
-addr1 cmd edArgs = fixAddr edArgs $ takeAddr1 $ fromMaybe 1 (addr cmd)
+addr1 cmd edArgs = fixAddr edArgs $ takeAddr1 $ fromMaybe (crrLine edArgs) (addr cmd)
     where
         takeAddr1 (AddrSingle v) = v
         takeAddr1 (AddrPair v _) = v

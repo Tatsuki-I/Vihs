@@ -1,6 +1,6 @@
 module Ed where
 
-import           Command
+import           ParseCmd2
 import           Control.Monad            (unless)
 import           Data.Maybe
 import           Delete
@@ -29,13 +29,13 @@ ed' cmd edArgs = case cmdName cmd of
                           ed' newCmd edArgs {saved = cmdName newCmd == 'q'}
         'a' ->
                   insert >>= (\x -> inputCmd >>=
-                  (`ed'` edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) (addr1 cmd) + 1, saved = False}))
+                  (`ed'` edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) (addr cmd) + 1, saved = False}))
         'i' ->
                   insert >>= (\x -> inputCmd >>=
-                  (`ed'` edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) $ addr1 cmd, saved = False}))
+                  (`ed'` edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) $ addr cmd, saved = False}))
         'd' ->
                   inputCmd >>=
-                  (`ed'` edArgs {buff = deleteLine (buff edArgs) (fromMaybe (crrLine edArgs) $ addr1 cmd) (fromMaybe 1 $ addr2 cmd), saved = False})
+                  (`ed'` edArgs {buff = deleteLine (buff edArgs) (fromMaybe (crrLine edArgs) $ addr cmd) (fromMaybe 1 $ addr2 cmd), saved = False})
         'l' -> do
                   printBuff cmd edArgs $ addDll $ buff edArgs
                   inputCmd >>= (`ed'` edArgs)
@@ -62,8 +62,8 @@ addDll = map (++"$")
 printBuff :: Command -> EdArgs -> [String] -> IO ()
 printBuff cmd edArgs allLines =
         putStr $ unlines $ drop
-                (fromMaybe (crrLine edArgs) (addr1 cmd) - 1)
-                (reverse (drop (length allLines - (fromMaybe 1 (addr1 cmd) + fromMaybe 1 (addr2 cmd) - 1)) $ reverse allLines))
+                (fromMaybe (crrLine edArgs) (addr cmd) - 1)
+                (reverse (drop (length allLines - (fromMaybe 1 (addr cmd) + fromMaybe 1 (addr2 cmd) - 1)) $ reverse allLines))
 
 iCmd :: [String] -> [String] -> Int -> [String]
 iCmd buff buff2 line =

@@ -1,6 +1,6 @@
 module Ed where
 
-import           Command
+import           ParseCmd2
 import           Control.Monad            (unless)
 import           Data.Maybe
 import           Delete
@@ -14,6 +14,22 @@ data EdArgs = EdArgs
         , buff     :: [String]
         , crrLine  :: Int
         , saved    :: Bool} deriving Show
+
+fixAddr :: EdArgs -> AddrVal -> Int
+fixAddr _ (AddrLine l) = l
+fixAddr e (AddrCrr dl) = crrLine e + dl
+fixAddr e AddrEOF      = length $ buff e
+
+addr1 :: Command -> EdArgs -> Maybe Int
+addr1 cmd edArgs = ((fixAddr edArgs . takeAddr1) <$>) (addr cmd)
+    where
+        takeAddr1 (AddrSingle v) = v
+        takeAddr1 (AddrPair v _) = v
+
+addr2 :: Command -> EdArgs-> Maybe Int
+addr2 cmd edArgs = ((fixAddr edArgs . takeAddr2) <$>) (addr cmd)
+    where
+        takeAddr2 (AddrPair _ v) = v
 
 ed :: [String] -> IO ()
 ed args = do
@@ -29,13 +45,13 @@ ed' cmd edArgs = case cmdName cmd of
                           ed' newCmd edArgs {saved = cmdName newCmd == 'q'}
         'a' ->
                   insert >>= (\x -> inputCmd >>=
-                  (`ed'` edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) (addr1 cmd) + 1, saved = False}))
+                  (`ed'` edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) (addr1 cmd edArgs) + 1, saved = False}))
         'i' ->
                   insert >>= (\x -> inputCmd >>=
-                  (`ed'` edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) $ addr1 cmd, saved = False}))
+                  (`ed'` edArgs {buff = iCmd (buff edArgs) x $ fromMaybe (crrLine edArgs) $ addr1 cmd edArgs, saved = False}))
         'd' ->
                   inputCmd >>=
-                  (`ed'` edArgs {buff = deleteLine (buff edArgs) (fromMaybe (crrLine edArgs) $ addr1 cmd) (fromMaybe 1 $ addr2 cmd), saved = False})
+                  (`ed'` edArgs {buff = deleteLine (buff edArgs) (fromMaybe (crrLine edArgs) $ addr1 cmd edArgs) (fromMaybe 1 $ addr2 cmd edArgs), saved = False})
         'l' -> do
                   printBuff cmd edArgs $ addDll $ buff edArgs
                   inputCmd >>= (`ed'` edArgs)
@@ -62,8 +78,8 @@ addDll = map (++"$")
 printBuff :: Command -> EdArgs -> [String] -> IO ()
 printBuff cmd edArgs allLines =
         putStr $ unlines $ drop
-                (fromMaybe (crrLine edArgs) (addr1 cmd) - 1)
-                (reverse (drop (length allLines - (fromMaybe 1 (addr1 cmd) + fromMaybe 1 (addr2 cmd) - 1)) $ reverse allLines))
+                ((fromMaybe (crrLine edArgs) $ addr1 cmd edArgs) - 1)
+                (reverse (drop (length allLines - ((fromMaybe (crrLine edArgs) $ addr1 cmd edArgs) + (fromMaybe 1 $ addr2 cmd edArgs) - 1)) $ reverse allLines))
 
 iCmd :: [String] -> [String] -> Int -> [String]
 iCmd buff buff2 line =

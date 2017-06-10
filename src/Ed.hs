@@ -1,9 +1,9 @@
 module Ed where
 
-import           ParseCmd
 import           Control.Monad            (unless)
 import           Data.Maybe
 import           Delete
+import           ParseCmd
 import           ReadWrite
 import           Safe                     (headMay)
 import           System.Console.Haskeline

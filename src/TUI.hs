@@ -1,11 +1,11 @@
-import ReadWrite
-import Delete
-import qualified UI.HSCurses.Curses as Curses
+import           Control.Exception        (finally)
+import           Control.Monad            (forever)
+import           Delete
+import           ReadWrite
+import           System.Exit              (ExitCode (..), exitWith)
+import           System.Posix             (usleep)
+import qualified UI.HSCurses.Curses       as Curses
 import qualified UI.HSCurses.CursesHelper as CursesH
-import Control.Exception (finally)
-import System.Posix      (usleep)
-import System.Exit       (exitWith, ExitCode (..) )
-import Control.Monad     (forever)
 
 screenBuffer :: [String] -> Int -> String
 screenBuffer strbuf height = unlines $ take (height - 1) strbuf

@@ -78,8 +78,8 @@ addDll = map (++"$")
 printBuff :: Command -> EdArgs -> [String] -> IO ()
 printBuff cmd edArgs allLines =
         putStr $ unlines $ drop
-                ((fromMaybe (crrLine edArgs) $ addr1 cmd edArgs) - 1)
-                (reverse (drop (length allLines - ((fromMaybe (crrLine edArgs) $ addr1 cmd edArgs) + (fromMaybe 1 $ addr2 cmd edArgs) - 1)) $ reverse allLines))
+                (fromMaybe (crrLine edArgs) (addr1 cmd edArgs) - 1)
+                (reverse (drop (length allLines - (fromMaybe (crrLine edArgs) (addr1 cmd edArgs) + fromMaybe 1 (addr2 cmd edArgs) - 1)) $ reverse allLines))
 
 iCmd :: [String] -> [String] -> Int -> [String]
 iCmd buff buff2 line =

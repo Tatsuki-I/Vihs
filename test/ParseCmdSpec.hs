@@ -1,6 +1,6 @@
-module ParseCmd2Spec (spec) where
+module ParseCmdSpec (spec) where
 
-import           ParseCmd2
+import           ParseCmd
 import           Test.Hspec
 
 spec :: Spec

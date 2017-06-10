@@ -1,61 +1,76 @@
-import Data.Either
-import Text.Parsec
-import Text.Parsec.String
+module ParseCmd where
+
+import           Control.Applicative
+import qualified Text.Parsec as P
+import           Text.Parsec.String
 
 data Command = Command
-  { addr1   :: Maybe Int
-  , addr2   :: Maybe Int
-  , cmdName :: Char
-  , param   :: Maybe String
-  } deriving Show 
+        { addr    :: Maybe Addr
+        , cmdName :: Char
+        , param   :: Maybe String
+        } deriving (Show, Eq)
+
+data Addr
+        = AddrSingle AddrVal
+        | AddrPair  AddrVal AddrVal
+        deriving (Show, Eq)
+
+data AddrVal
+        = AddrLine Int
+        | AddrCrr Int
+        | AddrEOF
+        deriving (Show, Eq)
+
+addrCrrLine :: AddrVal
+addrCrrLine = AddrCrr 0
 
 setCmd :: String -> Command
-setCmd str = Command
-  (if addrs == []
-    then Nothing
-    else Just (addrs !! 0))
-  (if length addrs < 2
-    then Nothing
-    else Just (addrs !! 1))
-  (cmdName)
-  (if (length (parseByCmd str)) < 1
-    then Nothing
-    else Just param)
-      where
-        addrs = (parseIntList ((parseByCmd str) !! 0))
-        param = ((parseByCmd str) !! 1)
-        cmdName = []
+setCmd str = case P.parse parseCmd "" str of
+        Right cmd -> cmd
+        Left  err -> Command Nothing ' ' Nothing
+                --putStrLn ("No match: " ++ show err)
+                
+                
+parseCmd :: Parser Command
+parseCmd = Command
+        <$> parseAddr
+        <*> parseCmdName
+        <*> parseParam
 
+parseAddr :: Parser (Maybe Addr)
+parseAddr = optional parseAddr'
+    where
+        parseAddr'
+                =   parseHeadToEOF
+                <|> parseCrrToEOF
+                <|> parseAddrs
+
+        parseHeadToEOF = P.char ','
+                *> pure (AddrPair (AddrLine 1) AddrEOF)
+
+        parseCrrToEOF = P.char ';'
+                *> pure (AddrPair addrCrrLine AddrEOF)
+
+        parseAddrs = do
+                (x:xs) <- parseIntList
+                return $ if null xs
+                             then AddrSingle $ AddrLine x
+                             else AddrPair (AddrLine x) (AddrLine $ last xs)
+
+parseCmdName :: Parser Char
+parseCmdName = P.letter
+
+parseParam :: Parser (Maybe String)
+parseParam = P.spaces
+        *> (listToMaybeList <$> P.many P.anyChar)
+            where
+                listToMaybeList [] = Nothing
+                listToMaybeList xs = Just xs
+
+parseIntList :: Parser [Int]
+parseIntList = parseInt `P.sepBy1` P.char ','
 
 parseInt :: Parser Int
 parseInt = do
-  value <- many1 digit
-  return (read value)
-
-parseText :: Parser [Int]
-parseText = parseInt `sepBy1` (char ',')
-
-
-parseString :: Parser String
-parseString = do
-        value <- string
-        return value
-
-parseByCmd :: Parser [String]
-parseByCmd = parseString `sepBy1` (letter)
-
-parseStrList :: String -> [String]
-parseStrList input
-  = case (parse parseByCmd "" input) of
-    Left err -> []
-    Right x -> x
-
-parseIntList :: String -> [Int]
-parseIntList input
-  = case (parse parseText "" input) of
-    Left err -> []
-    Right x -> x
-
-
-main = do
-        print $ setCmd "w test.txt"
+        value <- P.many1 P.digit
+        return (read value)

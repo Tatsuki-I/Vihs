@@ -1,6 +1,6 @@
 module Ed where
 
-import           ParseCmd2
+import           ParseCmd
 import           Control.Monad            (unless)
 import           Data.Maybe
 import           Delete

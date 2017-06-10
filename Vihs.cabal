@@ -19,7 +19,7 @@ library
                      , Insert
                      , ReadWrite
                      , Delete
-                     , ParseCmd2
+                     , ParseCmd
   build-depends:       base >= 4.7 && < 5
                      , parsec
                      , haskeline

@@ -10,9 +10,7 @@ import qualified UI.HSCurses.CursesHelper as CursesH
 screenBuffer :: [String] -> Int -> String
 screenBuffer strbuf height = unlines $ take (height - 1) strbuf
 
-{-
-main =
-  do
+main = do
     Curses.initCurses
     (height, width) <- Curses.scrSize
     strbuf <- createBuffer "test.txt"
@@ -23,7 +21,6 @@ main =
     Curses.refresh
     Curses.getCh
     Curses.endWin
--}
 
 {-
 main = do

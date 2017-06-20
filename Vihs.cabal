@@ -24,6 +24,7 @@ library
                      , parsec
                      , haskeline
                      , safe
+                     , hscurses
   default-language:    Haskell2010
 
 executable vihs

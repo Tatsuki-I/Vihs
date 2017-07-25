@@ -45,11 +45,10 @@ parseAddr =  optional parseAddr'
     parseCrrToEOF = P.char ';'
                  *> pure (AddrPair addrCrrLine AddrEOF)
 
-    parseAddrs = do
-                   (x:xs) <- parseIntList
-                   return $ if null xs
-                              then AddrSingle $ AddrLine x
-                              else AddrPair (AddrLine x) (AddrLine $ last xs)
+    parseAddrs = do (x:xs) <- parseIntList
+                    return $ if null xs
+                               then AddrSingle $ AddrLine x
+                               else AddrPair (AddrLine x) (AddrLine $ last xs)
 
 parseCmdName :: Parser Char
 parseCmdName =  P.letter
@@ -65,6 +64,5 @@ parseIntList :: Parser [Int]
 parseIntList =  parseInt `P.sepBy1` P.char ','
 
 parseInt :: Parser Int
-parseInt =  do
-              value <- P.many1 P.digit
-              return (read value)
+parseInt =  do value <- P.many1 P.digit
+               return (read value)

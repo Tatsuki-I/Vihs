@@ -75,20 +75,23 @@ addDll :: [String] -> [String]
 addDll =  map (++"$")
 
 printBuff                     :: Command -> EdArgs -> [String] -> IO ()
-printBuff cmd edArgs allLines = putStr $ unlines $ drop
-    (fromMaybe (crrLine edArgs) (addr1 cmd edArgs) - 1)
-    (reverse (drop (length allLines - (fromMaybe (crrLine edArgs) (addr1 cmd edArgs) + fromMaybe 1 (addr2 cmd edArgs) - 1)) $ reverse allLines))
+printBuff cmd edArgs allLines = putStr 
+                              $ unlines 
+                              $ drop (fromMaybe (crrLine edArgs) 
+                                                (addr1 cmd edArgs) - 1)
+                                                (reverse (drop (length allLines - (fromMaybe (crrLine edArgs) (addr1 cmd edArgs) + fromMaybe 1 (addr2 cmd edArgs) - 1)) $ reverse allLines))
 
 iCmd                 :: [String] -> [String] -> Int -> [String]
-iCmd buff buff2 line =  take (line - 1) buff ++ buff2 ++ reverse (take (length buff - line + 1) (reverse buff))
+iCmd buff buff2 line =  take (line - 1) buff ++
+                        buff2 ++
+                        reverse (take (length buff - line + 1) (reverse buff))
 
 insert :: IO [String]
 insert =  insert' [] False
   where
     insert' :: [String] -> Bool -> IO [String]
     insert' buff done | done = return buff
-                      | otherwise = do
-                          str <- getLine
-                          if str == "."
-                            then insert' buff True
-                            else insert' (buff ++ [str]) False
+                      | otherwise = do str <- getLine
+                                       if str == "."
+                                         then insert' buff True
+                                         else insert' (buff ++ [str]) False

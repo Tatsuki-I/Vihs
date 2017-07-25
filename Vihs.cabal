@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Ed
+                     , Ed2
                      , Insert
                      , ReadWrite
                      , Delete
@@ -25,6 +26,7 @@ library
                      , haskeline
                      , safe
                      , hscurses
+                     , mtl
   default-language:    Haskell2010
 
 executable vihs

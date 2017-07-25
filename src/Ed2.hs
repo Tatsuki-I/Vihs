@@ -19,7 +19,9 @@ data EdState = EdState { path   :: FilePath
 
 newtype Cursor = Cursor (Int, Int) deriving (Show)
 
-type Text = [String]
+type Line = String
+type Text = [Line]
+
 
 edInit :: EdState
 edInit =  EdState { path   = "test.txt"
@@ -73,14 +75,15 @@ delete'        :: Int -> String -> String
 delete' c buff =  take c       buff
                ++ drop (c + 1) buff
 
-insert        :: EdState -> IO EdState
---insert st =  do str <- fromMaybe "" 
---                    <$> (runInputT defaultSettings $ getInputLine "\n> ")
---                return $ edit (insert' (column st) str (currline st)) st
-insert st = return (edit (maybe "" 
-                                (\str -> (insert' (column st) str (currline st)))
-                                <$> (runInputT defaultSettings $ getInputLine "\n> ")) 
-                         st)
+insert    :: EdState -> IO EdState
+insert st =  do str' <- maybe "" (\str -> insert' (column st) str (currline st))
+                     <$> runInputT defaultSettings (getInputLine "\n> ")
+                return $ edit str' st
+{-
+insert st =  do str <- fromMaybe "" 
+                    <$> (runInputT defaultSettings $ getInputLine "\n> ")
+                return $ edit (insert' (column st) str (currline st)) st
+-}
 
 insert'            :: Int -> String -> String -> String
 insert' c str buff =  take c buff 

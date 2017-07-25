@@ -22,10 +22,6 @@ edInit =  EdState { filepath = "test.txt"
                   , cursorY  = 0
                   , saved    = False }
 
---edRun :: IO EdState
---edRun =  do cmd <- getChar
---            ed cmd `execStateT` edInit
-
 edRun :: IO EdState
 edRun =  do cmd <- getChar
             case cmd of

@@ -10,11 +10,11 @@ import Control.Monad.State
 import System.Console.Haskeline
 import Data.Maybe
 
-data EdState = EdState { filepath :: FilePath
-                       , buff     :: Text
-                       , line     :: Int
-                       , column   :: Int
-                       , saved    :: Bool
+data EdState = EdState { path   :: FilePath
+                       , buff   :: Text
+                       , line   :: Int
+                       , column :: Int
+                       , saved  :: Bool
                        } deriving (Show)
 
 newtype Cursor = Cursor (Int, Int) deriving (Show)
@@ -22,16 +22,14 @@ newtype Cursor = Cursor (Int, Int) deriving (Show)
 type Text = [String]
 
 edInit :: EdState
-edInit =  EdState { filepath = "test.txt"
-                  , buff     = ["Hello ed!", "I'm 2nd line"]
-                  , line  = 0
-                  , column  = 0
-                  , saved    = False }
+edInit =  EdState { path   = "test.txt"
+                  , buff   = ["Hello ed!", "I'm 2nd line"]
+                  , line   = 0
+                  , column = 0
+                  , saved  = False }
 
 currline    :: EdState -> String
 currline st =  buff st !! line st
-
-
 
 edRun :: IO EdState
 edRun =  do cmd <- getChar
@@ -72,7 +70,8 @@ delete    :: EdState -> EdState
 delete st =  edit (delete' (column st) (currline st)) st
 
 delete'        :: Int -> String -> String
-delete' c buff =  take c buff ++ drop (c + 1) buff
+delete' c buff =  take c       buff
+               ++ drop (c + 1) buff
 
 insert        :: EdState -> IO EdState
 --insert st =  do str <- fromMaybe "" 

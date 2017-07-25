@@ -30,7 +30,7 @@ edInit =  EdState { path   = "test.txt"
                   , column = 0
                   , saved  = False }
 
-currline    :: EdState -> String
+currline    :: EdState -> Line
 currline st =  buff st !! line st
 
 edRun :: IO EdState
@@ -86,6 +86,6 @@ insert st =  do str <- fromMaybe ""
 -}
 
 insert'            :: Int -> String -> String -> String
-insert' c str buff =  take c buff 
-                   ++ str 
+insert' c str buff =  take c buff
+                   ++ str
                    ++ drop c buff

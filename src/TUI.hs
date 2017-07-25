@@ -1,33 +1,50 @@
-import           Control.Exception        (finally)
-import           Control.Monad            (forever)
-import           Delete
-import           ReadWrite
-import           System.Exit              (ExitCode (..), exitWith)
-import           System.Posix             (usleep)
+{-
 import qualified UI.HSCurses.Curses       as Curses
 import qualified UI.HSCurses.CursesHelper as CursesH
+import Control.Exception (finally)
+import System.Exit       (exitWith, ExitCode (..) )
+import Control.Monad     (forever)
 
-screenBuffer :: [String] -> Int -> String
-screenBuffer strbuf height = unlines $ take (height - 1) strbuf
+data Direction = L | R | D | U
 
-main = do
-    Curses.initCurses
-    (height, width) <- Curses.scrSize
-    strbuf <- createBuffer "test.txt"
-    Curses.mvWAddStr Curses.stdScr 0 0 $ screenBuffer strbuf height
-    Curses.refresh
-    Curses.getCh
-    Curses.mvWAddStr Curses.stdScr 0 0 $ screenBuffer (tail strbuf) height
-    Curses.refresh
-    Curses.getCh
-    Curses.endWin
+move :: Direction -> IO ()
+move d = do
+  (height, width) <- Curses.scrSize
+  (h, w) <- Curses.getYX Curses.stdScr
+  Curses.wAddStr Curses.stdScr "*"
+  let (h', w') = case d of
+                    L -> (h, (max (w - 1) 0))
+                    R -> (h, (min (w + 1) (width - 2)))
+                    D -> ((min (h + 1) (height - 1)), w)
+                    U -> ((max (h - 1) 0), w)
+  Curses.move h' w'
+  Curses.refresh
 
-{-
-main = do
-    str <- readFile "test.txt"
-    str <- createBuffer "test.txt"
-    print str
-    print $ deleteLine str 2 2
-    buffToFile "test2.txt" $ deleteLine str 2 2
+main :: IO ()
+main =
+  do
+    CursesH.start
+    Curses.echo False
+    forever $ do
+        Curses.refresh
+        c <- CursesH.getKey (return ())
+        case CursesH.displayKey c of
+          "<Down>"  -> move D
+          "<Up>"    -> move U
+          "<Left>"  -> move L
+          "<Right>" -> move R
+          "j" -> move D
+          "k" -> move U
+          "h" -> move L
+          "l" -> move R
+          "q" -> exitWith ExitSuccess
+          _   -> return ()
+  `finally` CursesH.end
 -}
+import Brick
 
+ui :: Widget ()
+ui = str "Hello, world!"
+
+main :: IO ()
+main = simpleMain ui

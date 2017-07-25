@@ -2,10 +2,13 @@ module Ed2
   ( edRun
   , edInit
   , currline
-  , delete )
-  where
+  , delete 
+  , insert'
+  ) where
 
 import Control.Monad.State
+import System.Console.Haskeline
+import Data.Maybe
 
 data EdState = EdState { filepath :: FilePath
                        , buff     :: Text
@@ -26,7 +29,7 @@ edInit =  EdState { filepath = "test.txt"
                   , saved    = False }
 
 currline    :: EdState -> String
-currline st =  (buff st) !! line st
+currline st =  buff st !! line st
 
 
 
@@ -43,11 +46,12 @@ edRun' cmd =  ed cmd `execStateT` edInit
 
 ed     :: Char -> StateT EdState IO ()
 ed cmd =  case cmd of
-            'j' -> modify $ move (+        1) (\x -> x)
-            'k' -> modify $ move (subtract 1) (\x -> x)
-            'h' -> modify $ move (\x -> x)    (subtract 1)
-            'l' -> modify $ move (\x -> x)    (+        1)
-            'x' -> modify $ delete
+            'j' -> modify $ move (+        1) id
+            'k' -> modify $ move (subtract 1) id
+            'h' -> modify $ move id           (subtract 1)
+            'l' -> modify $ move id           (+        1)
+            'x' -> modify delete
+            'i' -> get >>= (lift . insert) >>= put
             'q' -> undefined
             _   -> undefined
 
@@ -59,21 +63,27 @@ move f1 f2 st =  st { line   = if f1 (line st)   < 0
                                  then 0
                                  else f2 $ column st }
 
-
-delete'       :: Int -> String -> String
-delete' c str =  take c str ++ drop (c + 1) str
-
---delete    :: EdState -> EdState
---delete st =  edit (take (column st) (currline st)
---          ++ drop (column st + 1) (currline st)) st
-
-delete    :: EdState -> EdState
-delete st =  edit (delete' (column st) (currline st)) st
-
 edit    :: String -> EdState -> EdState
 edit str st =  st { buff =  take (line st)     (buff st)
                          ++ str : []
                          ++ drop (line st + 1) (buff st) }
 
-insert            :: Int -> String -> String -> String
-insert c str buff =  undefined --buff !! str
+delete    :: EdState -> EdState
+delete st =  edit (delete' (column st) (currline st)) st
+
+delete'        :: Int -> String -> String
+delete' c buff =  take c buff ++ drop (c + 1) buff
+
+insert        :: EdState -> IO EdState
+--insert st =  do str <- fromMaybe "" 
+--                    <$> (runInputT defaultSettings $ getInputLine "\n> ")
+--                return $ edit (insert' (column st) str (currline st)) st
+insert st = return (edit (maybe "" 
+                                (\str -> (insert' (column st) str (currline st)))
+                                <$> (runInputT defaultSettings $ getInputLine "\n> ")) 
+                         st)
+
+insert'            :: Int -> String -> String -> String
+insert' c str buff =  take c buff 
+                   ++ str 
+                   ++ drop c buff

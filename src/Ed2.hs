@@ -1,10 +1,10 @@
 module Ed2
-  ( edRun
-  , edInit
-  , currline
-  , delete 
-  , insert'
-  ) where
+    ( edRun
+    , edInit
+    , currline
+    , delete 
+    , insert'
+    ) where
 
 import Control.Monad.State
 import System.Console.Haskeline

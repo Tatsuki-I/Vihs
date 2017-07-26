@@ -36,18 +36,27 @@ edInit =  EdState { path   = "test.txt"
 currline    :: EdState -> Line
 currline st =  buff st !! row st
 
-loopM :: (Monad m) => (a -> m a) -> a -> m a
+loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
 
-edRun :: IO EdState
-edRun =  do cmd <- getChar
-            st <- edRun' cmd
-            if quited st
+edRun    :: EdState -> IO EdState
+edRun st =  if quited st
               then return st
-              else edRun
+              else do cmd <- getChar
+                      putStrLn ""
+                      newSt <- edRun' cmd st
+                      edRun newSt
+              
 
-edRun'     :: Char -> IO EdState
-edRun' cmd =  ed cmd `execStateT` edInit
+{-cmd <- getChar
+              newSt <- edRun' cmd st
+              if quited st
+                then return newSt
+                else edRun newSt
+                -}
+
+edRun'     :: Char -> EdState -> IO EdState
+edRun' cmd st =  ed cmd `execStateT` st
 --edRun     :: String -> IO EdState
 --edRun cmd =  mapM_ ed cmd `execStateT` edInit
 
@@ -63,13 +72,13 @@ ed cmd =  case cmd of
             _   -> undefined
 
 move          :: (Row -> Row) -> (Column -> Column) -> EdState -> EdState
-move f1 f2 st =  st { row    = if (f1 (row st)    < 0)
+move f1 f2 st =  st { row    = if (f1 (row st) < 0)
                                || (f1 (row st) == length (buff st))
                                  then row st
-                                 else f1 $ row    st
+                                 else f1 $ row st
                     , column = if (f2 (column st) < 0)
-                               || (f2 (column st) == length (buff st))
-                                 then row st
+                               || (f2 (column st) == length (currline st))
+                                 then column st
                                  else f2 $ column st }
 
 edit    :: String -> EdState -> EdState

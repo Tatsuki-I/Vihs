@@ -114,11 +114,15 @@ edPrint isIns st = putStrLn $ unlines $ take (row st) (buff st)
                                      ++ [putCursor isIns st]
                                      ++ drop ((row st) + 1) (buff st)
 
-putCursor    :: Bool -> EdState -> String
+putCursor          :: Bool -> EdState -> String
 putCursor isIns st =  take (column st) (currline st)
                    ++ (if isIns
-                         then '|' : (head $ drop (column st) (currline st)) : []
-                         else '[' : (head $ drop (column st) (currline st)) : ']' : [])
+                         then '|'
+                         else '[') 
+                   : (head $ drop (column st) (currline st))
+                   : (if isIns
+                        then []
+                        else ']' : [])
                    ++ drop ((column st) + 1) (currline st)
 
 edit    :: String -> EdState -> EdState

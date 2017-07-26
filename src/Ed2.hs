@@ -26,17 +26,17 @@ type Row    = Int
 type Column = Int
 
 data Cmd = Move Direction
-         | Ins
-         | Del
+         | Insert
+         | Delete
          | Write
          | Quit
-         | No String
+         | None String
          deriving (Show)
 
-data Direction = Up
-               | Dwn
-               | Lft
-               | Rgt
+data Direction = UP
+               | DOWN
+               | LEFT
+               | RIGHT
                deriving (Show)
 
 edInit :: EdState
@@ -55,15 +55,15 @@ filelength st =  length (buff st)
 
 parseCmd :: Char -> Cmd
 parseCmd ch =  case ch of
-                 'j' -> Move Up
-                 'k' -> Move Dwn
-                 'h' -> Move Lft
-                 'l' -> Move Rgt
-                 'x' -> Del
-                 'i' -> Ins
+                 'j' -> Move UP
+                 'k' -> Move DOWN
+                 'h' -> Move LEFT
+                 'l' -> Move RIGHT
+                 'x' -> Delete
+                 'i' -> Insert
                  'w' -> Write
                  'q' -> Quit
-                 _   -> No (ch : [])
+                 _   -> None [ch]
 
                  
  
@@ -72,6 +72,7 @@ loopM f a =  loopM f =<< f a
 
 edRun    :: EdState -> IO EdState
 edRun st =  do print st
+               edPrint False st
                if quited st
                  then return st
                  else do cmd <- getChar
@@ -83,15 +84,15 @@ edRun st =  do print st
 
 ed     :: Cmd -> StateT EdState IO ()
 ed cmd =  case cmd of
-            Move Up  -> modify $ move (+        1) id
-            Move Dwn -> modify $ move (subtract 1) id
-            Move Lft -> modify $ move id           (subtract 1)
-            Move Rgt -> modify $ move id           (+        1)
-            Del      -> modify delete
-            Ins      -> get >>= (lift . insert) >>= put
-            Write    -> get >>= (lift . save) >>= put
-            Quit     -> modify quit
-            No str   -> get >>= (lift . nocmd str) >>= put
+            Move UP    -> modify $ move (+        1) id
+            Move DOWN  -> modify $ move (subtract 1) id
+            Move LEFT  -> modify $ move id           (subtract 1)
+            Move RIGHT -> modify $ move id           (+        1)
+            Delete     -> modify delete
+            Insert     -> get >>= (lift . insert) >>= put
+            Write      -> get >>= (lift . save) >>= put
+            Quit       -> modify quit
+            None str   -> get >>= (lift . nocmd str) >>= put
 
 move          :: (Row -> Row) -> (Column -> Column) -> EdState -> EdState
 move f1 f2 st =  st { row    = if (f1 (row st) < 0)
@@ -108,6 +109,18 @@ move f1 f2 st =  st { row    = if (f1 (row st) < 0)
                                         then length (buff st !! f1 (row st)) - 1
                                         else f2 $ column st }
 
+edPrint          :: Bool -> EdState -> IO ()
+edPrint isIns st = putStrLn $ unlines $ take (row st) (buff st) 
+                                     ++ [putCursor isIns st]
+                                     ++ drop ((row st) + 1) (buff st)
+
+putCursor    :: Bool -> EdState -> String
+putCursor isIns st =  take (column st) (currline st)
+                   ++ (if isIns
+                         then '|' : (head $ drop (column st) (currline st)) : []
+                         else '[' : (head $ drop (column st) (currline st)) : ']' : [])
+                   ++ drop ((column st) + 1) (currline st)
+
 edit    :: String -> EdState -> EdState
 edit str st =  st { buff =  take (row st)     (buff st)
                          ++ str : []
@@ -122,7 +135,8 @@ delete' c buff =  take c       buff
                ++ drop (c + 1) buff
 
 insert    :: EdState -> IO EdState
-insert st =  do str' <- maybe "" (\str -> insert' (column st) str (currline st))
+insert st =  do edPrint True st
+                str' <- maybe "" (\str -> insert' (column st) str (currline st))
                               <$> runInputT defaultSettings (getInputLine "\n> ")
                 return $ edit str' st
 {-

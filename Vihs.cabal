@@ -25,7 +25,6 @@ library
                      , parsec
                      , haskeline
                      , safe
-                     , hscurses
                      , mtl
   default-language:    Haskell2010
 

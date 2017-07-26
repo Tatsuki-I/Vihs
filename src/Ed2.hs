@@ -1,10 +1,10 @@
 module Ed2
-    ( edRun
-    , edInit
-    , currline
-    , delete 
-    , insert'
-    ) where
+     ( edRun
+     , edInit
+     , currline
+     , delete 
+     , insert'
+     ) where
 
 import Control.Monad.State
 import System.Console.Haskeline
@@ -12,32 +12,39 @@ import Data.Maybe
 
 data EdState = EdState { path   :: FilePath
                        , buff   :: Text
-                       , row    :: Int
-                       , column :: Int
+                       , row    :: Row
+                       , column :: Column
                        , saved  :: Bool
+                       , quited :: Bool
                        } deriving (Show)
 
 newtype Cursor = Cursor (Int, Int) deriving (Show)
 
-type Line = String
-type Text = [Line]
-
+type Line   = String
+type Text   = [Line]
+type Row    = Int
+type Column = Int
 
 edInit :: EdState
 edInit =  EdState { path   = "test.txt"
                   , buff   = ["Hello ed!", "I'm 2nd line"]
                   , row    = 0
                   , column = 0
-                  , saved  = False }
+                  , saved  = False
+                  , quited = False }
 
 currline    :: EdState -> Line
 currline st =  buff st !! row st
 
+loopM :: (Monad m) => (a -> m a) -> a -> m a
+loopM f a =  loopM f =<< f a
+
 edRun :: IO EdState
 edRun =  do cmd <- getChar
-            case cmd of
-              'q' -> undefined
-              _   -> edRun' cmd
+            st <- edRun' cmd
+            if quited st
+              then return st
+              else edRun
 
 edRun'     :: Char -> IO EdState
 edRun' cmd =  ed cmd `execStateT` edInit
@@ -52,10 +59,10 @@ ed cmd =  case cmd of
             'l' -> modify $ move id           (+        1)
             'x' -> modify delete
             'i' -> get >>= (lift . insert) >>= put
-            'q' -> undefined
+            'q' -> modify quit
             _   -> undefined
 
-move          :: (Int -> Int) -> (Int -> Int) -> EdState -> EdState
+move          :: (Row -> Row) -> (Column -> Column) -> EdState -> EdState
 move f1 f2 st =  st { row    = if (f1 (row st)    < 0)
                                || (f1 (row st) == length (buff st))
                                  then row st
@@ -73,7 +80,7 @@ edit str st =  st { buff =  take (row st)     (buff st)
 delete    :: EdState -> EdState
 delete st =  edit (delete' (column st) (currline st)) st
 
-delete'        :: Int -> String -> String
+delete'        :: Column -> String -> String
 delete' c buff =  take c       buff
                ++ drop (c + 1) buff
 
@@ -87,7 +94,10 @@ insert st =  do str <- fromMaybe ""
                 return $ edit (insert' (column st) str (currline st)) st
 -}
 
-insert'            :: Int -> String -> String -> String
+insert'            :: Column -> String -> String -> String
 insert' c str buff =  take c buff
                    ++ str
                    ++ drop c buff
+
+quit :: EdState -> EdState
+quit st =  st { quited = True }

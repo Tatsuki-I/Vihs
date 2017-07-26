@@ -25,6 +25,20 @@ type Text   = [Line]
 type Row    = Int
 type Column = Int
 
+data Cmd = Move Direction
+         | Ins
+         | Del
+         | Write
+         | Quit
+         | No String
+         deriving (Show)
+
+data Direction = Up
+               | Dwn
+               | Lft
+               | Rgt
+               deriving (Show)
+
 edInit :: EdState
 edInit =  EdState { path   = "test.txt"
                   , buff   = ["Hello ed!", "I'm 2nd line"]
@@ -39,6 +53,20 @@ currline st =  buff st !! row st
 filelength    :: EdState -> Int
 filelength st =  length (buff st)
 
+parseCmd :: Char -> Cmd
+parseCmd ch =  case ch of
+                 'j' -> Move Up
+                 'k' -> Move Dwn
+                 'h' -> Move Lft
+                 'l' -> Move Rgt
+                 'x' -> Del
+                 'i' -> Ins
+                 'w' -> Write
+                 'q' -> Quit
+                 _   -> No (ch : [])
+
+                 
+ 
 loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
 
@@ -48,22 +76,22 @@ edRun st =  do print st
                  then return st
                  else do cmd <- getChar
                          putStrLn ""
-                         ed cmd `execStateT` st >>= edRun
+                         ed (parseCmd cmd) `execStateT` st >>= edRun
 
 --edRun     :: String -> IO EdState
 --edRun cmd =  mapM_ ed cmd `execStateT` edInit
 
-ed     :: Char -> StateT EdState IO ()
+ed     :: Cmd -> StateT EdState IO ()
 ed cmd =  case cmd of
-            'j' -> modify $ move (+        1) id
-            'k' -> modify $ move (subtract 1) id
-            'h' -> modify $ move id           (subtract 1)
-            'l' -> modify $ move id           (+        1)
-            'x' -> modify delete
-            'i' -> get >>= (lift . insert) >>= put
-            'w' -> get >>= (lift . save) >>= put
-            'q' -> modify quit
-            _   -> undefined
+            Move Up  -> modify $ move (+        1) id
+            Move Dwn -> modify $ move (subtract 1) id
+            Move Lft -> modify $ move id           (subtract 1)
+            Move Rgt -> modify $ move id           (+        1)
+            Del      -> modify delete
+            Ins      -> get >>= (lift . insert) >>= put
+            Write    -> get >>= (lift . save) >>= put
+            Quit     -> modify quit
+            No str   -> get >>= (lift . nocmd str) >>= put
 
 move          :: (Row -> Row) -> (Column -> Column) -> EdState -> EdState
 move f1 f2 st =  st { row    = if (f1 (row st) < 0)
@@ -111,6 +139,11 @@ insert' c str buff =  take c buff
 quit    :: EdState -> EdState
 quit st =  st { quited = True }
 
-save     :: EdState -> IO EdState
-save st  =  do writeFile (path st) (unlines (buff st))
-               return st { saved = True }
+save    :: EdState -> IO EdState
+save st =  do writeFile (path st) (unlines (buff st))
+              return st { saved = True }
+
+nocmd        :: String -> EdState -> IO EdState
+nocmd str st =  do putStrLn $  "No such command: \'" 
+                                ++ str ++ "\'"
+                   return st

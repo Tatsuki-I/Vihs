@@ -108,9 +108,9 @@ insert' c str buff =  take c buff
                    ++ str
                    ++ drop c buff
 
-quit :: EdState -> EdState
+quit    :: EdState -> EdState
 quit st =  st { quited = True }
 
-save :: EdState -> IO EdState
-save st  = do writeFile (path st) (unlines (buff st))
-              return st { saved = True }
+save     :: EdState -> IO EdState
+save st  =  do writeFile (path st) (unlines (buff st))
+               return st { saved = True }

@@ -36,6 +36,8 @@ edInit =  EdState { path   = "test.txt"
 currline    :: EdState -> Line
 currline st =  buff st !! row st
 
+filelength st = length (buff st)
+
 loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
 
@@ -63,13 +65,18 @@ ed cmd =  case cmd of
 
 move          :: (Row -> Row) -> (Column -> Column) -> EdState -> EdState
 move f1 f2 st =  st { row    = if (f1 (row st) < 0)
-                               || (f1 (row st) == length (buff st))
+                               || (f1 (row st) == filelength st)
                                  then row st
                                  else f1 $ row st
                     , column = if (f2 (column st) < 0)
                                || (f2 (column st) == length (currline st))
-                                 then column st
-                                 else f2 $ column st }
+                               || (f1 (row st) < 0)
+                               || (f1 (row st) == filelength st)
+                                 then column st 
+                                 else if (length $ (buff st) !! f1 (row st)) 
+                                       < (length $ currline st)
+                                        then (length $ (buff st) !! f1 (row st)) - 1
+                                        else f2 $ column st }
 
 edit    :: String -> EdState -> EdState
 edit str st =  st { buff =  take (row st)     (buff st)

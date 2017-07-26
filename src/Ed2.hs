@@ -61,6 +61,7 @@ ed cmd =  case cmd of
             'l' -> modify $ move id           (+        1)
             'x' -> modify delete
             'i' -> get >>= (lift . insert) >>= put
+            'w' -> get >>= (lift . save) >>= put
             'q' -> modify quit
             _   -> undefined
 
@@ -71,8 +72,8 @@ move f1 f2 st =  st { row    = if (f1 (row st) < 0)
                                  else f1 $ row st
                     , column = if (f2 (column st) < 0)
                                || (f2 (column st) == length (currline st))
-                               || (f1 (row st) < 0)
-                               || (f1 (row st) == filelength st)
+                               || (f1 (row st)    < 0)
+                               || (f1 (row st)    == filelength st)
                                  then column st 
                                  else if length (buff st !! f1 (row st)) 
                                        < length (currline st)
@@ -82,7 +83,8 @@ move f1 f2 st =  st { row    = if (f1 (row st) < 0)
 edit    :: String -> EdState -> EdState
 edit str st =  st { buff =  take (row st)     (buff st)
                          ++ str : []
-                         ++ drop (row st + 1) (buff st) }
+                         ++ drop (row st + 1) (buff st)
+                  , saved = False }
 
 delete    :: EdState -> EdState
 delete st =  edit (delete' (column st) (currline st)) st
@@ -108,3 +110,7 @@ insert' c str buff =  take c buff
 
 quit :: EdState -> EdState
 quit st =  st { quited = True }
+
+save :: EdState -> IO EdState
+save st  = do writeFile (path st) (unlines (buff st))
+              return st { saved = True }

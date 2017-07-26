@@ -40,23 +40,13 @@ loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
 
 edRun    :: EdState -> IO EdState
-edRun st =  if quited st
-              then return st
-              else do cmd <- getChar
-                      putStrLn ""
-                      newSt <- edRun' cmd st
-                      edRun newSt
-              
+edRun st =  do print st
+               if quited st
+                 then return st
+                 else do cmd <- getChar
+                         putStrLn ""
+                         ed cmd `execStateT` st >>= edRun
 
-{-cmd <- getChar
-              newSt <- edRun' cmd st
-              if quited st
-                then return newSt
-                else edRun newSt
-                -}
-
-edRun'     :: Char -> EdState -> IO EdState
-edRun' cmd st =  ed cmd `execStateT` st
 --edRun     :: String -> IO EdState
 --edRun cmd =  mapM_ ed cmd `execStateT` edInit
 

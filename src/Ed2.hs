@@ -12,7 +12,7 @@ import Data.Maybe
 
 data EdState = EdState { path   :: FilePath
                        , buff   :: Text
-                       , line   :: Int
+                       , row    :: Int
                        , column :: Int
                        , saved  :: Bool
                        } deriving (Show)
@@ -26,12 +26,12 @@ type Text = [Line]
 edInit :: EdState
 edInit =  EdState { path   = "test.txt"
                   , buff   = ["Hello ed!", "I'm 2nd line"]
-                  , line   = 0
+                  , row    = 0
                   , column = 0
                   , saved  = False }
 
 currline    :: EdState -> Line
-currline st =  buff st !! line st
+currline st =  buff st !! row st
 
 edRun :: IO EdState
 edRun =  do cmd <- getChar
@@ -56,17 +56,19 @@ ed cmd =  case cmd of
             _   -> undefined
 
 move          :: (Int -> Int) -> (Int -> Int) -> EdState -> EdState
-move f1 f2 st =  st { line   = if f1 (line st)   < 0
-                                 then 0
-                                 else f1 $ line   st
-                    , column = if f2 (column st) < 0
-                                 then 0
+move f1 f2 st =  st { row    = if (f1 (row st)    < 0)
+                               || (f1 (row st) == length (buff st))
+                                 then row st
+                                 else f1 $ row    st
+                    , column = if (f2 (column st) < 0)
+                               || (f2 (column st) == length (buff st))
+                                 then row st
                                  else f2 $ column st }
 
 edit    :: String -> EdState -> EdState
-edit str st =  st { buff =  take (line st)     (buff st)
+edit str st =  st { buff =  take (row st)     (buff st)
                          ++ str : []
-                         ++ drop (line st + 1) (buff st) }
+                         ++ drop (row st + 1) (buff st) }
 
 delete    :: EdState -> EdState
 delete st =  edit (delete' (column st) (currline st)) st
@@ -77,7 +79,7 @@ delete' c buff =  take c       buff
 
 insert    :: EdState -> IO EdState
 insert st =  do str' <- maybe "" (\str -> insert' (column st) str (currline st))
-                     <$> runInputT defaultSettings (getInputLine "\n> ")
+                              <$> runInputT defaultSettings (getInputLine "\n> ")
                 return $ edit str' st
 {-
 insert st =  do str <- fromMaybe "" 

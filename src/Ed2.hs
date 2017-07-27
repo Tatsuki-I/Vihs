@@ -9,6 +9,7 @@ module Ed2
 import Control.Monad.State
 import System.Console.Haskeline
 import Data.Maybe
+import System.Process
 
 data EdState = EdState { path   :: FilePath
                        , buff   :: Text
@@ -33,6 +34,7 @@ data Cmd = Move Direction Count
          | Replace
          | Write
          | Quit
+         | Term
          | None String
            deriving (Show)
 
@@ -66,6 +68,7 @@ parseCmd ch =  case ch of
                  'i' -> Insert
                  'w' -> Write
                  'q' -> Quit
+                 't' -> Term
                  _   -> None [ch]
  
 loopM     :: (Monad m) => (a -> m a) -> a -> m a
@@ -94,6 +97,7 @@ ed cmd =  case cmd of
             Insert       -> get >>= (lift . insert)    >>= put
             Write        -> get >>= (lift . save)      >>= put
             Quit         -> modify quit
+            Term         -> get >>= (lift . term)      >>= put
             None str     -> get >>= (lift . nocmd str) >>= put
 
 move          :: (Row -> Row) -> (Column -> Column) -> EdState -> EdState
@@ -159,6 +163,10 @@ quit st =  st { quited = True }
 save    :: EdState -> IO EdState
 save st =  do writeFile (path st) (unlines (buff st))
               return st { saved = True }
+
+term :: EdState -> IO EdState
+term st =  do callCommand "zsh"
+              return st
 
 nocmd        :: String -> EdState -> IO EdState
 nocmd str st =  do putStrLn $ "No such command: \'" 

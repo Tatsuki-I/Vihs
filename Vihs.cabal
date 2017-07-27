@@ -26,6 +26,7 @@ library
                      , haskeline
                      , safe
                      , mtl
+                     , process
   default-language:    Haskell2010
 
 executable vihs

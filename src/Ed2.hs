@@ -18,7 +18,8 @@ data EdState = EdState { path   :: FilePath
                        , quited :: Bool
                        } deriving (Show)
 
-newtype Cursor = Cursor (Int, Int) deriving (Show)
+newtype Cursor = Cursor (Int, Int)
+                 deriving (Show)
 
 type Line   = String
 type Text   = [Line]
@@ -31,13 +32,13 @@ data Cmd = Move Direction
          | Write
          | Quit
          | None String
-         deriving (Show)
+           deriving (Show)
 
 data Direction = UP
                | DOWN
                | LEFT
                | RIGHT
-               deriving (Show)
+                 deriving (Show)
 
 edInit :: EdState
 edInit =  EdState { path   = "test.txt"
@@ -64,8 +65,6 @@ parseCmd ch =  case ch of
                  'w' -> Write
                  'q' -> Quit
                  _   -> None [ch]
-
-                 
  
 loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
@@ -75,7 +74,8 @@ edRun st =  do print st
                edPrint False st
                if quited st
                  then return st
-                 else do cmd <- getChar
+                 else do putStr ":"
+                         cmd <- getChar
                          putStrLn ""
                          ed (parseCmd cmd) `execStateT` st >>= edRun
 
@@ -89,8 +89,8 @@ ed cmd =  case cmd of
             Move LEFT  -> modify $ move id           (subtract 1)
             Move RIGHT -> modify $ move id           (+        1)
             Delete     -> modify delete
-            Insert     -> get >>= (lift . insert) >>= put
-            Write      -> get >>= (lift . save) >>= put
+            Insert     -> get >>= (lift . insert)    >>= put
+            Write      -> get >>= (lift . save)      >>= put
             Quit       -> modify quit
             None str   -> get >>= (lift . nocmd str) >>= put
 
@@ -110,33 +110,31 @@ move f1 f2 st =  st { row    = if (f1 (row st) < 0)
                                         else f2 $ column st }
 
 edPrint          :: Bool -> EdState -> IO ()
-edPrint isIns st = putStrLn $ unlines $ take (row st) (buff st) 
-                                     ++ [putCursor isIns st]
-                                     ++ drop (row st + 1) (buff st)
+edPrint isIns st = putStrLn $ unlines $ fst ++ [putCursor isIns st]
+                                        ++ tail snd
+                   where (fst, snd) = splitAt (row st) (buff st)
 
 putCursor          :: Bool -> EdState -> String
-putCursor isIns st =  take (column st) (currline st)
-                   ++ (if isIns
-                         then '|'
-                         else '[') 
-                   : head (drop (column st) (currline st))
-                   : (if isIns
-                        then []
-                        else [']'])
-                   ++ drop (column st + 1) (currline st)
+putCursor isIns st =  fst ++ (if isIns
+                                then '|'
+                                else '[') 
+                      : head snd : (if isIns
+                                      then []
+                                      else [']'])
+                      ++ tail snd --drop (column st + 1) (currline st)
+                      where (fst, snd) = splitAt (column st) (currline st)
 
 edit        :: String -> EdState -> EdState
-edit str st =  st { buff  =  take (row st)     (buff st)
-                          ++ str : []
-                          ++ drop (row st + 1) (buff st)
-                  , saved =  False }
+edit str st =  st { buff  = fst ++ str : [] ++ tail snd --drop (row st + 1) (buff st)
+                  , saved = False }
+               where (fst, snd) = splitAt (row st) (buff st)
 
 delete    :: EdState -> EdState
 delete st =  edit (delete' (column st) (currline st)) st
 
 delete'        :: Column -> String -> String
-delete' c buff =  take c       buff
-               ++ drop (c + 1) buff
+delete' c buff =  fst ++ tail snd
+                  where (fst, snd) = splitAt c buff
 
 insert    :: EdState -> IO EdState
 insert st =  do edPrint True st
@@ -150,9 +148,8 @@ insert st =  do str <- fromMaybe ""
 -}
 
 insert'            :: Column -> String -> String -> String
-insert' c str buff =  take c buff
-                   ++ str
-                   ++ drop c buff
+insert' c str buff =  fst ++ str ++ snd-- ++ drop c buff
+                      where (fst, snd) = splitAt c buff
 
 quit    :: EdState -> EdState
 quit st =  st { quited = True }
@@ -162,6 +159,6 @@ save st =  do writeFile (path st) (unlines (buff st))
               return st { saved = True }
 
 nocmd        :: String -> EdState -> IO EdState
-nocmd str st =  do putStrLn $  "No such command: \'" 
-                                ++ str ++ "\'"
+nocmd str st =  do putStrLn $ "No such command: \'" 
+                              ++ str ++ "\'"
                    return st

@@ -31,7 +31,7 @@ type Count  = Word
 data Cmd = Move Direction Count
          | Insert
          | Delete Count
-         | Replace
+         | Replace Count
          | Write
          | Quit
          | Term
@@ -65,6 +65,8 @@ parseCmd ch =  case ch of
                  'h' -> Move LEFT 1
                  'l' -> Move RIGHT 1
                  'x' -> Delete 1
+                 'r' -> Replace 1
+                 'R' -> Replace 1
                  'i' -> Insert
                  'w' -> Write
                  'q' -> Quit
@@ -95,6 +97,7 @@ ed cmd =  case cmd of
             Move RIGHT _ -> modify $ move id           (+        1)
             Delete     _ -> modify delete
             Insert       -> get >>= (lift . insert)    >>= put
+            Replace 1    -> get >>= (lift . replace)   >>= put
             Write        -> get >>= (lift . save)      >>= put
             Quit         -> modify quit
             Term         -> get >>= (lift . term)      >>= put
@@ -141,6 +144,16 @@ delete st =  edit (delete' (column st) (currline st)) st
 delete'        :: Column -> String -> String
 delete' c buff =  fst ++ tail snd
                   where (fst, snd) = splitAt c buff
+
+replace :: EdState -> IO EdState
+replace st =  do str <- replace' (column st) (currline st)
+                 return $ edit str st
+
+replace'        :: Column -> String -> IO String
+replace' c buff =  do putStr "> "
+                      ch <- getChar
+                      return $ fst ++ [ch] ++ tail snd
+                      where (fst, snd) = splitAt c buff
 
 insert    :: EdState -> IO EdState
 insert st =  do edPrint True st

@@ -44,7 +44,7 @@ edInit =  EdState { path   = "test.txt"
                   , buff   = ["Hello ed!", "I'm 2nd line"]
                   , row    = 0
                   , column = 0
-                  , saved  = False
+                  , saved  = True
                   , quited = False }
 
 currline    :: EdState -> Line
@@ -53,7 +53,7 @@ currline st =  buff st !! row st
 filelength    :: EdState -> Int
 filelength st =  length (buff st)
 
-parseCmd :: Char -> Cmd
+parseCmd    :: Char -> Cmd
 parseCmd ch =  case ch of
                  'j' -> Move UP
                  'k' -> Move DOWN
@@ -112,24 +112,24 @@ move f1 f2 st =  st { row    = if (f1 (row st) < 0)
 edPrint          :: Bool -> EdState -> IO ()
 edPrint isIns st = putStrLn $ unlines $ take (row st) (buff st) 
                                      ++ [putCursor isIns st]
-                                     ++ drop ((row st) + 1) (buff st)
+                                     ++ drop (row st + 1) (buff st)
 
 putCursor          :: Bool -> EdState -> String
 putCursor isIns st =  take (column st) (currline st)
                    ++ (if isIns
                          then '|'
                          else '[') 
-                   : (head $ drop (column st) (currline st))
+                   : head (drop (column st) (currline st))
                    : (if isIns
                         then []
-                        else ']' : [])
-                   ++ drop ((column st) + 1) (currline st)
+                        else [']'])
+                   ++ drop (column st + 1) (currline st)
 
-edit    :: String -> EdState -> EdState
-edit str st =  st { buff =  take (row st)     (buff st)
-                         ++ str : []
-                         ++ drop (row st + 1) (buff st)
-                  , saved = False }
+edit        :: String -> EdState -> EdState
+edit str st =  st { buff  =  take (row st)     (buff st)
+                          ++ str : []
+                          ++ drop (row st + 1) (buff st)
+                  , saved =  False }
 
 delete    :: EdState -> EdState
 delete st =  edit (delete' (column st) (currline st)) st

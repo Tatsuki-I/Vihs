@@ -25,10 +25,12 @@ type Line   = String
 type Text   = [Line]
 type Row    = Int
 type Column = Int
+type Count  = Word
 
-data Cmd = Move Direction
+data Cmd = Move Direction Count
          | Insert
-         | Delete
+         | Delete Count
+         | Replace
          | Write
          | Quit
          | None String
@@ -56,11 +58,11 @@ filelength st =  length (buff st)
 
 parseCmd    :: Char -> Cmd
 parseCmd ch =  case ch of
-                 'j' -> Move UP
-                 'k' -> Move DOWN
-                 'h' -> Move LEFT
-                 'l' -> Move RIGHT
-                 'x' -> Delete
+                 'j' -> Move UP 1
+                 'k' -> Move DOWN 1
+                 'h' -> Move LEFT 1
+                 'l' -> Move RIGHT 1
+                 'x' -> Delete 1
                  'i' -> Insert
                  'w' -> Write
                  'q' -> Quit
@@ -84,15 +86,15 @@ edRun st =  do print st
 
 ed     :: Cmd -> StateT EdState IO ()
 ed cmd =  case cmd of
-            Move UP    -> modify $ move (+        1) id
-            Move DOWN  -> modify $ move (subtract 1) id
-            Move LEFT  -> modify $ move id           (subtract 1)
-            Move RIGHT -> modify $ move id           (+        1)
-            Delete     -> modify delete
-            Insert     -> get >>= (lift . insert)    >>= put
-            Write      -> get >>= (lift . save)      >>= put
-            Quit       -> modify quit
-            None str   -> get >>= (lift . nocmd str) >>= put
+            Move UP    _ -> modify $ move (+        1) id
+            Move DOWN  _ -> modify $ move (subtract 1) id
+            Move LEFT  _ -> modify $ move id           (subtract 1)
+            Move RIGHT _ -> modify $ move id           (+        1)
+            Delete     _ -> modify delete
+            Insert       -> get >>= (lift . insert)    >>= put
+            Write        -> get >>= (lift . save)      >>= put
+            Quit         -> modify quit
+            None str     -> get >>= (lift . nocmd str) >>= put
 
 move          :: (Row -> Row) -> (Column -> Column) -> EdState -> EdState
 move f1 f2 st =  st { row    = if (f1 (row st) < 0)

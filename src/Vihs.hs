@@ -34,7 +34,6 @@ data Cmd = Move Direction Count
          | Delete Count
          | Replace Count
          | Change Mode
-         | Term
          | None String
            deriving (Show)
 
@@ -61,6 +60,8 @@ data CASE = Upper
 
 data ExCmd = Write
            | Quit
+           | To Mode
+           | Term
              deriving (Show)
 
 vihsInit :: VihsState
@@ -89,14 +90,16 @@ parseCmd ch =  case ch of
                  'R' -> Replace 1
                  'i' -> Insert
                  ':' -> Change EX
-                 't' -> Term
                  _   -> None [ch]
 
 parseExCmd     :: String -> ExCmd
 parseExCmd cmd =  case head (words cmd) of
                     "w" -> Write
                     "write" -> Write
+                    "q" -> Quit
                     "quit" -> Quit
+                    "terminal" -> Term
+                    "BS" -> To NORMAL
  
 loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
@@ -111,13 +114,11 @@ vihsRun st =  do print st
                                        cmd <- getChar
                                        putStrLn ""
                                        normal (parseCmd cmd) `execStateT` st >>= vihsRun
-                          EX     -> do putStr ":"
-                                       cmd <- getLine
+                          EX     -> do cmd <- fromMaybe "" 
+                                           <$> (runInputT defaultSettings $ getInputLine ":")
                                        putStrLn ""
-                                       ex (parseExCmd cmd) `execStateT` st >>= vihsRun
-
---edRun     :: String -> IO VihsState
---edRun cmd =  mapM_ ed cmd `execStateT` edInit
+                                       newSt <- ex (parseExCmd cmd) `execStateT` st >>= vihsRun
+                                       return $ newSt { mode = NORMAL }
 
 normal     :: Cmd -> StateT VihsState IO ()
 normal cmd =  case cmd of
@@ -129,13 +130,14 @@ normal cmd =  case cmd of
                 Insert       -> get >>= (lift . insert)    >>= put
                 Replace 1    -> get >>= (lift . replace)   >>= put
                 Change EX    -> modify $ change EX
-                Term         -> get >>= (lift . term)      >>= put
                 None str     -> get >>= (lift . nocmd str) >>= put
 
 ex     :: ExCmd -> StateT VihsState IO ()
 ex cmd =  case cmd of
-            Write        -> get >>= (lift . save)      >>= put
-            Quit         -> modify quit
+            Write        -> get >>= (lift . save . change NORMAL)      >>= put
+            Quit         -> modify $ quit . change NORMAL
+            Term         -> get >>= (lift . term . change NORMAL)      >>= put
+            To NORMAL    -> modify $ change NORMAL
 
 move          :: (Row -> Row) -> (Column -> Column) -> VihsState -> VihsState
 move f1 f2 st =  st { row    = if (f1 (row st) < 0)

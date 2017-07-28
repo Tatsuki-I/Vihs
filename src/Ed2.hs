@@ -15,6 +15,7 @@ data EdState = EdState { path   :: FilePath
                        , buff   :: Text
                        , row    :: Row
                        , column :: Column
+                       , mode   :: Mode
                        , saved  :: Bool
                        , quited :: Bool
                        } deriving (Show)
@@ -34,6 +35,7 @@ data Cmd = Move Direction Count
          | Replace Count
          | Write
          | Quit
+         | Change Mode
          | Term
          | None String
            deriving (Show)
@@ -44,11 +46,27 @@ data Direction = UP
                | RIGHT
                  deriving (Show)
 
+data Mode = NORMAL
+          | INSERT InsCmd
+          | VISUAL
+          | EX
+            deriving (Show)
+
+data InsCmd = A CASE
+            | I
+            | O
+              deriving (Show)
+
+data CASE = Upper
+          | Lower
+            deriving (Show)
+
 edInit :: EdState
 edInit =  EdState { path   = "test.txt"
                   , buff   = ["Hello ed!", "I'm 2nd line"]
                   , row    = 0
                   , column = 0
+                  , mode   = NORMAL
                   , saved  = True
                   , quited = False }
 
@@ -70,6 +88,7 @@ parseCmd ch =  case ch of
                  'i' -> Insert
                  'w' -> Write
                  'q' -> Quit
+                 ':' -> Change EX
                  't' -> Term
                  _   -> None [ch]
  
@@ -81,10 +100,15 @@ edRun st =  do print st
                edPrint False st
                if quited st
                  then return st
-                 else do putStr ":"
-                         cmd <- getChar
-                         putStrLn ""
-                         ed (parseCmd cmd) `execStateT` st >>= edRun
+                 else case mode st of
+                        NORMAL -> do putStr "> "
+                                     cmd <- getChar
+                                     putStrLn ""
+                                     ed (parseCmd cmd) `execStateT` st >>= edRun
+                        EX     -> do putStr ":"
+                                     cmd <- getChar
+                                     putStrLn ""
+                                     ed (parseCmd cmd) `execStateT` st >>= edRun
 
 --edRun     :: String -> IO EdState
 --edRun cmd =  mapM_ ed cmd `execStateT` edInit
@@ -99,6 +123,7 @@ ed cmd =  case cmd of
             Insert       -> get >>= (lift . insert)    >>= put
             Replace 1    -> get >>= (lift . replace)   >>= put
             Write        -> get >>= (lift . save)      >>= put
+            Change EX    -> modify $ change EX
             Quit         -> modify quit
             Term         -> get >>= (lift . term)      >>= put
             None str     -> get >>= (lift . nocmd str) >>= put
@@ -158,7 +183,7 @@ replace' c buff =  do putStr "> "
 insert    :: EdState -> IO EdState
 insert st =  do edPrint True st
                 str' <- maybe "" (\str -> insert' (column st) str (currline st))
-                              <$> runInputT defaultSettings (getInputLine "\n> ")
+                              <$> runInputT defaultSettings (getInputLine "\nINSERT>> ")
                 return $ edit str' st
 {-
 insert st =  do str <- fromMaybe "" 
@@ -177,8 +202,11 @@ save    :: EdState -> IO EdState
 save st =  do writeFile (path st) (unlines (buff st))
               return st { saved = True }
 
+change :: Mode -> EdState -> EdState
+change md st =  st { mode = md }
+
 term :: EdState -> IO EdState
-term st =  do callCommand "zsh"
+term st =  do system "$SHELL"
               return st
 
 nocmd        :: String -> EdState -> IO EdState

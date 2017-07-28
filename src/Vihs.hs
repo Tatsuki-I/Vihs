@@ -1,6 +1,6 @@
-module Ed2
-     ( edRun
-     , edInit
+module Vihs
+     ( vihsRun
+     , vihsInit
      , currline
      , delete 
      , insert'
@@ -11,14 +11,14 @@ import System.Console.Haskeline
 import Data.Maybe
 import System.Process
 
-data EdState = EdState { path   :: FilePath
-                       , buff   :: Text
-                       , row    :: Row
-                       , column :: Column
-                       , mode   :: Mode
-                       , saved  :: Bool
-                       , quited :: Bool
-                       } deriving (Show)
+data VihsState = VihsState { path   :: FilePath
+                           , buff   :: Text
+                           , row    :: Row
+                           , column :: Column
+                           , mode   :: Mode
+                           , saved  :: Bool
+                           , quited :: Bool
+                           } deriving (Show)
 
 newtype Cursor = Cursor (Int, Int)
                  deriving (Show)
@@ -61,19 +61,22 @@ data CASE = Upper
           | Lower
             deriving (Show)
 
-edInit :: EdState
-edInit =  EdState { path   = "test.txt"
-                  , buff   = ["Hello ed!", "I'm 2nd line"]
-                  , row    = 0
-                  , column = 0
-                  , mode   = NORMAL
-                  , saved  = True
-                  , quited = False }
+data ExCmd = DelLine
+             deriving (Show)
 
-currline    :: EdState -> Line
+vihsInit :: VihsState
+vihsInit =  VihsState { path   = "test.txt"
+                      , buff   = ["Hello Vihs!", "I'm 2nd line"]
+                      , row    = 0
+                      , column = 0
+                      , mode   = NORMAL
+                      , saved  = True
+                      , quited = False }
+
+currline    :: VihsState -> Line
 currline st =  buff st !! row st
 
-filelength    :: EdState -> Int
+filelength    :: VihsState -> Int
 filelength st =  length (buff st)
 
 parseCmd    :: Char -> Cmd
@@ -91,44 +94,52 @@ parseCmd ch =  case ch of
                  ':' -> Change EX
                  't' -> Term
                  _   -> None [ch]
+
+parseExCmd     :: String -> ExCmd
+parseExCmd str =  case str of
+                    "dd" -> DelLine
  
 loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
 
-edRun    :: EdState -> IO EdState
-edRun st =  do print st
-               edPrint False st
-               if quited st
-                 then return st
-                 else case mode st of
-                        NORMAL -> do putStr "> "
-                                     cmd <- getChar
-                                     putStrLn ""
-                                     ed (parseCmd cmd) `execStateT` st >>= edRun
-                        EX     -> do putStr ":"
-                                     cmd <- getChar
-                                     putStrLn ""
-                                     ed (parseCmd cmd) `execStateT` st >>= edRun
+vihsRun    :: VihsState -> IO VihsState
+vihsRun st =  do print st
+                 vihsPrint False st
+                 if quited st
+                   then return st
+                   else case mode st of
+                          NORMAL -> do putStr "> "
+                                       cmd <- getChar
+                                       putStrLn ""
+                                       normal (parseCmd cmd) `execStateT` st >>= vihsRun
+                          EX     -> do putStr ":"
+                                       cmd <- getLine
+                                       putStrLn ""
+                                       ex (parseExCmd cmd) `execStateT` st >>= vihsRun
 
---edRun     :: String -> IO EdState
+--edRun     :: String -> IO VihsState
 --edRun cmd =  mapM_ ed cmd `execStateT` edInit
 
-ed     :: Cmd -> StateT EdState IO ()
-ed cmd =  case cmd of
-            Move UP    _ -> modify $ move (+        1) id
-            Move DOWN  _ -> modify $ move (subtract 1) id
-            Move LEFT  _ -> modify $ move id           (subtract 1)
-            Move RIGHT _ -> modify $ move id           (+        1)
-            Delete     _ -> modify delete
-            Insert       -> get >>= (lift . insert)    >>= put
-            Replace 1    -> get >>= (lift . replace)   >>= put
-            Write        -> get >>= (lift . save)      >>= put
-            Change EX    -> modify $ change EX
-            Quit         -> modify quit
-            Term         -> get >>= (lift . term)      >>= put
-            None str     -> get >>= (lift . nocmd str) >>= put
+normal     :: Cmd -> StateT VihsState IO ()
+normal cmd =  case cmd of
+                Move UP    _ -> modify $ move (+        1) id
+                Move DOWN  _ -> modify $ move (subtract 1) id
+                Move LEFT  _ -> modify $ move id           (subtract 1)
+                Move RIGHT _ -> modify $ move id           (+        1)
+                Delete     _ -> modify delete
+                Insert       -> get >>= (lift . insert)    >>= put
+                Replace 1    -> get >>= (lift . replace)   >>= put
+                Write        -> get >>= (lift . save)      >>= put
+                Change EX    -> modify $ change EX
+                Quit         -> modify quit
+                Term         -> get >>= (lift . term)      >>= put
+                None str     -> get >>= (lift . nocmd str) >>= put
 
-move          :: (Row -> Row) -> (Column -> Column) -> EdState -> EdState
+ex     :: ExCmd -> StateT VihsState IO ()
+ex cmd =  case cmd of
+            DelLine -> undefined
+
+move          :: (Row -> Row) -> (Column -> Column) -> VihsState -> VihsState
 move f1 f2 st =  st { row    = if (f1 (row st) < 0)
                                || (f1 (row st) == filelength st)
                                  then row st
@@ -143,12 +154,12 @@ move f1 f2 st =  st { row    = if (f1 (row st) < 0)
                                         then length (buff st !! f1 (row st)) - 1
                                         else f2 $ column st }
 
-edPrint          :: Bool -> EdState -> IO ()
-edPrint isIns st = putStrLn $ unlines $ fst ++ [putCursor isIns st]
-                                        ++ tail snd
-                   where (fst, snd) = splitAt (row st) (buff st)
+vihsPrint          :: Bool -> VihsState -> IO ()
+vihsPrint isIns st = putStrLn $ unlines $ fst ++ [putCursor isIns st]
+                                          ++ tail snd
+                     where (fst, snd) = splitAt (row st) (buff st)
 
-putCursor          :: Bool -> EdState -> String
+putCursor          :: Bool -> VihsState -> String
 putCursor isIns st =  fst ++ (if isIns
                                 then '|'
                                 else '[') 
@@ -158,30 +169,30 @@ putCursor isIns st =  fst ++ (if isIns
                       ++ tail snd --drop (column st + 1) (currline st)
                       where (fst, snd) = splitAt (column st) (currline st)
 
-edit        :: String -> EdState -> EdState
+edit        :: String -> VihsState -> VihsState
 edit str st =  st { buff  = fst ++ str : [] ++ tail snd --drop (row st + 1) (buff st)
                   , saved = False }
                where (fst, snd) = splitAt (row st) (buff st)
 
-delete    :: EdState -> EdState
+delete    :: VihsState -> VihsState
 delete st =  edit (delete' (column st) (currline st)) st
 
 delete'        :: Column -> String -> String
 delete' c buff =  fst ++ tail snd
                   where (fst, snd) = splitAt c buff
 
-replace :: EdState -> IO EdState
+replace :: VihsState -> IO VihsState
 replace st =  do str <- replace' (column st) (currline st)
                  return $ edit str st
 
 replace'        :: Column -> String -> IO String
-replace' c buff =  do putStr "> "
+replace' c buff =  do putStr "REPLACE>> "
                       ch <- getChar
                       return $ fst ++ [ch] ++ tail snd
                       where (fst, snd) = splitAt c buff
 
-insert    :: EdState -> IO EdState
-insert st =  do edPrint True st
+insert    :: VihsState -> IO VihsState
+insert st =  do vihsPrint True st
                 str' <- maybe "" (\str -> insert' (column st) str (currline st))
                               <$> runInputT defaultSettings (getInputLine "\nINSERT>> ")
                 return $ edit str' st
@@ -195,21 +206,21 @@ insert'            :: Column -> String -> String -> String
 insert' c str buff =  fst ++ str ++ snd-- ++ drop c buff
                       where (fst, snd) = splitAt c buff
 
-quit    :: EdState -> EdState
+quit    :: VihsState -> VihsState
 quit st =  st { quited = True }
 
-save    :: EdState -> IO EdState
+save    :: VihsState -> IO VihsState
 save st =  do writeFile (path st) (unlines (buff st))
               return st { saved = True }
 
-change :: Mode -> EdState -> EdState
+change :: Mode -> VihsState -> VihsState
 change md st =  st { mode = md }
 
-term :: EdState -> IO EdState
+term :: VihsState -> IO VihsState
 term st =  do system "$SHELL"
               return st
 
-nocmd        :: String -> EdState -> IO EdState
+nocmd        :: String -> VihsState -> IO VihsState
 nocmd str st =  do putStrLn $ "No such command: \'" 
                               ++ str ++ "\'"
                    return st

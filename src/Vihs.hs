@@ -144,7 +144,7 @@ normal cmd =  case cmd of
 
 ex     :: ExCmd -> StateT VihsState IO ()
 ex cmd =  case cmd of
-            Write path   -> get >>= (lift . (save  path) . change NORMAL)      >>= put
+            Write path   -> get >>= (lift . (write path) . change NORMAL)      >>= put
             Quit         -> modify $ quit . change NORMAL
             Term         -> get >>= (lift . term . change NORMAL)      >>= put
             To NORMAL    -> modify $ change NORMAL
@@ -219,9 +219,9 @@ insert' c str buff =  fst ++ str ++ snd-- ++ drop c buff
 quit    :: VihsState -> VihsState
 quit st =  st { quited = True }
 
-save         :: FilePath -> VihsState -> IO VihsState
-save path st =  do writeFile path (unlines (buff st))
-                   return st { path = path
+write         :: FilePath -> VihsState -> IO VihsState
+write path st =  do writeFile path (unlines (buff st))
+                    return st { path = path
                              , saved = True }
 
 change         :: Mode -> VihsState -> VihsState

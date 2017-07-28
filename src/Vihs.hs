@@ -5,10 +5,15 @@ module Vihs
      , vihsDefault
      ) where
 
+instance NFData TypeRep where
+
 import Control.Monad.State
 import System.Console.Haskeline
 import Data.Maybe
 import System.Process
+
+newtype TypeRep = TypeRep
+                  deriving (NFData)
 
 data VihsState = VihsState { path   :: FilePath
                            , buff   :: Text
@@ -48,12 +53,12 @@ data Mode = NORMAL
           | EX
             deriving (Show)
 
-data InsCmd = A CASE
+data InsCmd = A Case
             | I
             | O
               deriving (Show)
 
-data CASE = Upper
+data Case = Upper
           | Lower
             deriving (Show)
 
@@ -63,9 +68,9 @@ data ExCmd = Write FilePath
            | Term
              deriving (Show)
 
-vihsInit      :: FilePath -> VihsState
-vihsInit path =  VihsState { path   = path
-                           , buff   = ["Hello Vihs!", "I'm 2nd line"]
+vihsInit           :: FilePath -> Text -> VihsState
+vihsInit path buff =  VihsState { path   = path
+                           , buff   = buff
                            , row    = 0
                            , column = 0
                            , mode   = NORMAL
@@ -73,10 +78,11 @@ vihsInit path =  VihsState { path   = path
                            , quited = False }
 
 vihsDefault :: VihsState
-vihsDefault =  vihsInit "vihstest.txt"
+vihsDefault =  vihsInit "vihstest.txt" 
+                        ["Hello Vihs!", "I'm 2nd line"]
 
 vihsTestRun :: IO VihsState
-vihsTestRun =  vihsRun $ vihsDefault
+vihsTestRun =  vihsRun vihsDefault
 
 currline    :: VihsState -> Line
 currline st =  buff st !! row st
@@ -99,8 +105,8 @@ parseCmd ch =  case ch of
 
 parseExCmd     :: String -> ExCmd
 parseExCmd cmd =  case head (words cmd) of
-                    "w"        -> Write $ (words cmd) !! 1
-                    "write"    -> Write $ (words cmd) !! 1
+                    "w"        -> Write $ words cmd !! 1
+                    "write"    -> Write $ words cmd !! 1
                     "q"        -> Quit
                     "quit"     -> Quit
                     "terminal" -> Term
@@ -122,7 +128,7 @@ vihsRun st =  do print st
                                        putStrLn ""
                                        normal (parseCmd cmd) `execStateT` st >>= vihsRun
                           EX     -> do cmd <- fromMaybe "" 
-                                           <$> (runInputT defaultSettings $ getInputLine ":")
+                                           <$> runInputT defaultSettings (getInputLine ":")
                                        putStrLn ""
                                        newSt <- ex (parseExCmd cmd) `execStateT` st >>= vihsRun
                                        return $ newSt { mode = NORMAL }
@@ -141,7 +147,7 @@ normal cmd =  case cmd of
 
 ex     :: ExCmd -> StateT VihsState IO ()
 ex cmd =  case cmd of
-            Write path   -> get >>= (lift . (write path) . to NORMAL)      >>= put
+            Write path   -> get >>= (lift . write path . to NORMAL)      >>= put
             Quit         -> modify $ quit . to NORMAL
             Term         -> get >>= (lift . term . to NORMAL)      >>= put
             To NORMAL    -> modify $ to NORMAL

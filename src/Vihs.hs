@@ -1,6 +1,8 @@
 module Vihs
      ( vihsRun
+     , vihsTestRun
      , vihsInit
+     , vihsDefault
      , currline
      , delete 
      , insert'
@@ -58,20 +60,26 @@ data CASE = Upper
           | Lower
             deriving (Show)
 
-data ExCmd = Write
+data ExCmd = Write FilePath
            | Quit
            | To Mode
            | Term
              deriving (Show)
 
-vihsInit :: VihsState
-vihsInit =  VihsState { path   = "test.txt"
-                      , buff   = ["Hello Vihs!", "I'm 2nd line"]
-                      , row    = 0
-                      , column = 0
-                      , mode   = NORMAL
-                      , saved  = True
-                      , quited = False }
+vihsInit      :: FilePath -> VihsState
+vihsInit path =  VihsState { path   = path
+                           , buff   = ["Hello Vihs!", "I'm 2nd line"]
+                           , row    = 0
+                           , column = 0
+                           , mode   = NORMAL
+                           , saved  = True
+                           , quited = False }
+
+vihsDefault :: VihsState
+vihsDefault =  vihsInit "test.txt"
+
+vihsTestRun :: IO VihsState
+vihsTestRun =  vihsRun $ vihsDefault
 
 currline    :: VihsState -> Line
 currline st =  buff st !! row st
@@ -94,12 +102,14 @@ parseCmd ch =  case ch of
 
 parseExCmd     :: String -> ExCmd
 parseExCmd cmd =  case head (words cmd) of
-                    "w" -> Write
-                    "write" -> Write
-                    "q" -> Quit
-                    "quit" -> Quit
+                    "w"        -> Write $ (words cmd) !! 1
+                    "write"    -> Write $ (words cmd) !! 1
+                    "q"        -> Quit
+                    "quit"     -> Quit
                     "terminal" -> Term
-                    "BS" -> To NORMAL
+                    "BS"       -> To NORMAL
+                    "\b"       -> To NORMAL
+                    _          -> undefined
  
 loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
@@ -134,7 +144,7 @@ normal cmd =  case cmd of
 
 ex     :: ExCmd -> StateT VihsState IO ()
 ex cmd =  case cmd of
-            Write        -> get >>= (lift . save . change NORMAL)      >>= put
+            Write path   -> get >>= (lift . (save  path) . change NORMAL)      >>= put
             Quit         -> modify $ quit . change NORMAL
             Term         -> get >>= (lift . term . change NORMAL)      >>= put
             To NORMAL    -> modify $ change NORMAL
@@ -181,7 +191,7 @@ delete'        :: Column -> String -> String
 delete' c buff =  fst ++ tail snd
                   where (fst, snd) = splitAt c buff
 
-replace :: VihsState -> IO VihsState
+replace    :: VihsState -> IO VihsState
 replace st =  do str <- replace' (column st) (currline st)
                  return $ edit str st
 
@@ -209,14 +219,15 @@ insert' c str buff =  fst ++ str ++ snd-- ++ drop c buff
 quit    :: VihsState -> VihsState
 quit st =  st { quited = True }
 
-save    :: VihsState -> IO VihsState
-save st =  do writeFile (path st) (unlines (buff st))
-              return st { saved = True }
+save         :: FilePath -> VihsState -> IO VihsState
+save path st =  do writeFile path (unlines (buff st))
+                   return st { path = path
+                             , saved = True }
 
-change :: Mode -> VihsState -> VihsState
-change md st =  st { mode = md }
+change         :: Mode -> VihsState -> VihsState
+change mode st =  st { mode = mode }
 
-term :: VihsState -> IO VihsState
+term    :: VihsState -> IO VihsState
 term st =  do system "$SHELL"
               return st
 

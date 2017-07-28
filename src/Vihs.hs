@@ -3,9 +3,6 @@ module Vihs
      , vihsTestRun
      , vihsInit
      , vihsDefault
-     , currline
-     , delete 
-     , insert'
      ) where
 
 import Control.Monad.State
@@ -76,7 +73,7 @@ vihsInit path =  VihsState { path   = path
                            , quited = False }
 
 vihsDefault :: VihsState
-vihsDefault =  vihsInit "test.txt"
+vihsDefault =  vihsInit "vihstest.txt"
 
 vihsTestRun :: IO VihsState
 vihsTestRun =  vihsRun $ vihsDefault
@@ -139,15 +136,15 @@ normal cmd =  case cmd of
                 Delete     _ -> modify delete
                 Insert       -> get >>= (lift . insert)    >>= put
                 Replace 1    -> get >>= (lift . replace)   >>= put
-                Change EX    -> modify $ change EX
+                Change EX    -> modify $ to EX
                 None str     -> get >>= (lift . nocmd str) >>= put
 
 ex     :: ExCmd -> StateT VihsState IO ()
 ex cmd =  case cmd of
-            Write path   -> get >>= (lift . (write path) . change NORMAL)      >>= put
-            Quit         -> modify $ quit . change NORMAL
-            Term         -> get >>= (lift . term . change NORMAL)      >>= put
-            To NORMAL    -> modify $ change NORMAL
+            Write path   -> get >>= (lift . (write path) . to NORMAL)      >>= put
+            Quit         -> modify $ quit . to NORMAL
+            Term         -> get >>= (lift . term . to NORMAL)      >>= put
+            To NORMAL    -> modify $ to NORMAL
 
 move          :: (Row -> Row) -> (Column -> Column) -> VihsState -> VihsState
 move f1 f2 st =  st { row    = if (f1 (row st) < 0)
@@ -224,8 +221,8 @@ write path st =  do writeFile path (unlines (buff st))
                     return st { path = path
                              , saved = True }
 
-change         :: Mode -> VihsState -> VihsState
-change mode st =  st { mode = mode }
+to         :: Mode -> VihsState -> VihsState
+to mode st =  st { mode = mode }
 
 term    :: VihsState -> IO VihsState
 term st =  do system "$SHELL"

@@ -33,8 +33,6 @@ data Cmd = Move Direction Count
          | Insert
          | Delete Count
          | Replace Count
-         | Write
-         | Quit
          | Change Mode
          | Term
          | None String
@@ -61,7 +59,8 @@ data CASE = Upper
           | Lower
             deriving (Show)
 
-data ExCmd = DelLine
+data ExCmd = Write
+           | Quit
              deriving (Show)
 
 vihsInit :: VihsState
@@ -89,15 +88,15 @@ parseCmd ch =  case ch of
                  'r' -> Replace 1
                  'R' -> Replace 1
                  'i' -> Insert
-                 'w' -> Write
-                 'q' -> Quit
                  ':' -> Change EX
                  't' -> Term
                  _   -> None [ch]
 
 parseExCmd     :: String -> ExCmd
-parseExCmd str =  case str of
-                    "dd" -> DelLine
+parseExCmd cmd =  case head (words cmd) of
+                    "w" -> Write
+                    "write" -> Write
+                    "quit" -> Quit
  
 loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
@@ -129,15 +128,14 @@ normal cmd =  case cmd of
                 Delete     _ -> modify delete
                 Insert       -> get >>= (lift . insert)    >>= put
                 Replace 1    -> get >>= (lift . replace)   >>= put
-                Write        -> get >>= (lift . save)      >>= put
                 Change EX    -> modify $ change EX
-                Quit         -> modify quit
                 Term         -> get >>= (lift . term)      >>= put
                 None str     -> get >>= (lift . nocmd str) >>= put
 
 ex     :: ExCmd -> StateT VihsState IO ()
 ex cmd =  case cmd of
-            DelLine -> undefined
+            Write        -> get >>= (lift . save)      >>= put
+            Quit         -> modify quit
 
 move          :: (Row -> Row) -> (Column -> Column) -> VihsState -> VihsState
 move f1 f2 st =  st { row    = if (f1 (row st) < 0)

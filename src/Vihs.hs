@@ -1,19 +1,21 @@
 module Vihs
-     ( vihsRun
+     ( VihsState
+     , vihsRun
      , vihsTestRun
      , vihsInit
      , vihsDefault
      ) where
 
-instance NFData TypeRep where
+
+--instance NFData TypeRep where
 
 import Control.Monad.State
 import System.Console.Haskeline
 import Data.Maybe
 import System.Process
 
-newtype TypeRep = TypeRep
-                  deriving (NFData)
+--newtype TypeRep = TypeRep
+--                  deriving (NFData)
 
 data VihsState = VihsState { path   :: FilePath
                            , buff   :: Text
@@ -70,16 +72,18 @@ data ExCmd = Write FilePath
 
 vihsInit           :: FilePath -> Text -> VihsState
 vihsInit path buff =  VihsState { path   = path
-                           , buff   = buff
-                           , row    = 0
-                           , column = 0
-                           , mode   = NORMAL
-                           , saved  = True
-                           , quited = False }
+                                , buff   = buff
+                                , row    = 0
+                                , column = 0
+                                , mode   = NORMAL
+                                , saved  = True
+                                , quited = False }
 
 vihsDefault :: VihsState
 vihsDefault =  vihsInit "vihstest.txt" 
-                        ["Hello Vihs!", "I'm 2nd line"]
+                        [ "Hello Vihs!"
+                        , "I'm 2nd line" 
+                        , "I'm 3rd line"]
 
 vihsTestRun :: IO VihsState
 vihsTestRun =  vihsRun vihsDefault
@@ -154,16 +158,18 @@ ex cmd =  case cmd of
 
 move          :: (Row -> Row) -> (Column -> Column) -> VihsState -> VihsState
 move f1 f2 st =  st { row    = if (f1 (row st) < 0)
-                               || (f1 (row st) == filelength st)
+                               || (f1 (row st) >= filelength st)
                                  then row st
                                  else f1 $ row st
                     , column = if (f2 (column st) < 0)
-                               || (f2 (column st) == length (currline st))
+                               || (f2 (column st) >= length (currline st))
                                || (f1 (row st)    < 0)
-                               || (f1 (row st)    == filelength st)
+                               || (f1 (row st)    >= filelength st)
                                  then column st 
                                  else if length (buff st !! f1 (row st)) 
-                                       < length (currline st)
+                                         <  length (currline st)
+                                      && length (buff st !! f1 (row st))
+                                         <= column st
                                         then length (buff st !! f1 (row st)) - 1
                                         else f2 $ column st }
 
@@ -183,8 +189,8 @@ putCursor isIns st =  fst ++ (if isIns
                       where (fst, snd) = splitAt (column st) (currline st)
 
 edit        :: String -> VihsState -> VihsState
-edit str st =  st { buff  = fst ++ str : [] ++ tail snd --drop (row st + 1) (buff st)
-                  , saved = False }
+edit str st =  st { buff   = fst ++ str : [] ++ tail snd
+                  , saved  = False }
                where (fst, snd) = splitAt (row st) (buff st)
 
 delete    :: VihsState -> VihsState

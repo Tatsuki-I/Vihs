@@ -152,9 +152,9 @@ parseExCmd cmd =  case head (words cmd) of
                     "write"    -> Write $ words cmd !! 1
                     "q"        -> Quit
                     "quit"     -> Quit
-                    "set"      -> case words cmd !! 1 of
-                                    "number"   -> Number True
-                                    "nonumber" -> Number False
+                    "set"      -> Number $ case words cmd !! 1 of
+                                             "number"   -> True
+                                             "nonumber" -> False
                     "terminal" -> Term
                     "BS"       -> To NORMAL
                     "\b"       -> To NORMAL
@@ -206,10 +206,10 @@ ex cmd =  case cmd of
             To NORMAL    -> modify $ to NORMAL
 
 move          :: (Row -> Row) -> (Column -> Column) -> VihsState -> VihsState
-move f1 f2 st =  st { row    = if (f1 (row st) <  0)
-                               || (f1 (row st) >= filelength st)
-                                 then row st
-                                 else f1 $ row st
+move f1 f2 st =  st { row    = (if (f1 (row st) <  0)
+                                || (f1 (row st) >= filelength st)
+                                  then id
+                                  else f1) $ row st
                     , column = if (f2 (column st) <  0)
                                || (f2 (column st) >= length (currline st))
                                || (f1 (row st)    <  0)
@@ -258,9 +258,9 @@ edit str st =  st { buff   = fst ++ str : [] ++ tail snd
                where (fst, snd) = splitAt (row st) (buff st)
 
 delete    :: VihsState -> VihsState
-delete st =  if null $ currline st
-               then st
-               else edit (delete' (column st) (currline st)) st
+delete st =  (if null $ currline st
+                then id
+                else edit $ delete' (column st) $ currline st) st
 
 delete'        :: Column -> Line -> Line
 delete' c line =  fst ++ tail snd

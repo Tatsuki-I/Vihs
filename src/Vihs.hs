@@ -261,8 +261,8 @@ delLine :: Count -> VihsState -> VihsState
 delLine c st =  if length (buff st) <= 1
                   then st { buff = [""] }
                   else st { buff = fst ++ drop c snd 
-                          , row  = if (length $ buff st) - 1 < row st
-                                     then (length $ buff st) - 1
+                          , row  = if length (buff st) - 1 < row st
+                                     then length (buff st) - 1
                                      else row st }
                 where (fst, snd) = splitAt (row st) (buff st)
 

@@ -4,6 +4,8 @@ module Vihs
      , vihsTestRun
      , vihsInit
      , vihsDefault
+     , stream
+     , stream'
      ) where
 
 
@@ -53,6 +55,7 @@ data Mode = NORMAL
           | INSERT Char
           | VISUAL
           | EX
+          | REPLACE
             deriving (Show)
 
 data ExCmd = Write FilePath
@@ -84,6 +87,42 @@ currline st =  buff st !! row st
 
 filelength    :: VihsState -> Int
 filelength st =  length (buff st)
+
+stream :: String -> VihsState-> IO Cmd
+stream str st =  do str' <- stream' True str
+                    putStrLn ""
+                    vihsPrint False st
+                    case str' of
+                      "j" -> return $ Move UP 1
+                      "k" -> return $ Move DOWN 1
+                      "h" -> return $ Move LEFT 1
+                      "l" -> return $ Move RIGHT 1
+                      "x" -> return $ Delete 1
+                      "r" -> return $ Change REPLACE
+                      "R" -> return $ Replace 1
+                      "i" -> return $ Insert 'i'
+                      "I" -> return $ Insert 'I'
+                      "a" -> return $ Insert 'a'
+                      "A" -> return $ Insert 'A'
+                      "o" -> return $ Insert 'o'
+                      "O" -> return $ Insert 'O'
+                      ":" -> return $ Change EX
+                      "dd" -> undefined
+                      _   -> do print str'
+                                vihsPrint False st
+                                stream str' st
+
+switcher        :: String -> Char -> String
+switcher str ch =  case ch of
+                     '\DEL' -> if null str
+                                 then ""
+                                 else init str
+                     '\ESC' -> ""
+                     _      -> str ++ [ch]
+
+stream'              :: Bool -> String -> IO String
+stream' finished str =  do ch <- getChar
+                           return $ switcher str ch
 
 parseCmd    :: Char -> Cmd
 parseCmd ch =  case ch of
@@ -118,20 +157,18 @@ loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
 
 vihsRun    :: VihsState -> IO VihsState
-vihsRun st =  do print st
-                 vihsPrint False st
+vihsRun st =  do vihsPrint False st
                  if quited st
                    then return st
                    else case mode st of
-                          NORMAL -> do putStr "> "
-                                       cmd <- getChar
-                                       putStrLn ""
-                                       normal (parseCmd cmd) `execStateT` st >>= vihsRun
-                          EX     -> do cmd <- fromMaybe "" 
-                                           <$> runInputT defaultSettings (getInputLine ":")
-                                       putStrLn ""
-                                       newSt <- ex (parseExCmd cmd) `execStateT` st >>= vihsRun
-                                       return $ newSt { mode = NORMAL }
+                          NORMAL -> normalRun st
+                          EX     -> exRun     st
+                          INSERT ch -> insert ch st
+                          REPLACE -> replace st
+
+normalRun    :: VihsState -> IO VihsState
+normalRun st =  do cmd <- stream "" st
+                   normal cmd `execStateT` st >>= vihsRun
 
 normal     :: Cmd -> StateT VihsState IO ()
 normal cmd =  case cmd of
@@ -142,8 +179,15 @@ normal cmd =  case cmd of
                 Delete     _ -> modify delete
                 Insert ch    -> get >>= (lift . insert ch) >>= put
                 Replace 1    -> get >>= (lift . replace)   >>= put
-                Change EX    -> modify $ to EX
+                Change mode  -> modify $ to mode
                 None str     -> get >>= (lift . nocmd str) >>= put
+
+exRun    :: VihsState -> IO VihsState
+exRun st =  do cmd <- fromMaybe "" 
+                   <$> runInputT defaultSettings (getInputLine ":")
+               putStrLn ""
+               newSt <- ex (parseExCmd cmd) `execStateT` st >>= vihsRun
+               return $ newSt { mode = NORMAL }
 
 ex     :: ExCmd -> StateT VihsState IO ()
 ex cmd =  case cmd of
@@ -170,14 +214,14 @@ move f1 f2 st =  st { row    = if (f1 (row st) <  0)
                                         else f2 $ column st }
 
 vihsPrint          :: Bool -> VihsState -> IO ()
-vihsPrint isIns st = putStrLn
-                     . unlines
-                     . zipWith (++)
-                               (map ((++"\t") . show) [1 ..])
-                               $ fst 
-                                 ++ [putCursor isIns st]
-                                 ++ tail snd
-                     where (fst, snd) = splitAt (row st) (buff st)
+vihsPrint isIns st =  do print st
+                         putStrLn $ unlines 
+                                    . zipWith (++)
+                                              (map ((++"\t") . show) [1 ..])
+                                              $ fst 
+                                                ++ [putCursor isIns st]
+                                                ++ tail snd
+                         where (fst, snd) = splitAt (row st) (buff st)
 
 putCursor          :: Bool -> VihsState -> String
 putCursor isIns st =  fst ++ (if isIns
@@ -203,7 +247,9 @@ edit str st =  st { buff   = fst ++ str : [] ++ tail snd
                where (fst, snd) = splitAt (row st) (buff st)
 
 delete    :: VihsState -> VihsState
-delete st =  edit (delete' (column st) (currline st)) st
+delete st =  if null $ currline st
+               then st
+               else edit (delete' (column st) (currline st)) st
 
 delete'        :: Column -> String -> String
 delete' c buff =  fst ++ tail snd
@@ -211,7 +257,7 @@ delete' c buff =  fst ++ tail snd
 
 replace    :: VihsState -> IO VihsState
 replace st =  do str <- replace' (column st) (currline st)
-                 return $ edit str st
+                 vihsRun $ edit str $ to NORMAL st
 
 replace'        :: Column -> String -> IO String
 replace' c buff =  do putStr "REPLACE>> "

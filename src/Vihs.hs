@@ -161,10 +161,10 @@ vihsRun st =  do vihsPrint False st
                  if quited st
                    then return st
                    else case mode st of
-                          NORMAL -> normalRun st
-                          EX     -> exRun     st
+                          NORMAL    -> normalRun st
+                          EX        -> exRun     st
                           INSERT ch -> insert ch st
-                          REPLACE -> replace st
+                          REPLACE   -> replace st
 
 normalRun    :: VihsState -> IO VihsState
 normalRun st =  do cmd <- stream "" st
@@ -273,7 +273,7 @@ insert ch st =  do vihsPrint True st'
                                                   (currline st'))
                                  <$> runInputT defaultSettings
                                                (getInputLine "\nINSERT>> ")
-                   return $ edit str' st'
+                   return $ edit str' $ to NORMAL st'
                    where st' = case ch of
                                  'i' -> st
                                  'a' -> st { column = column st + 1 }

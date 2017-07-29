@@ -35,11 +35,12 @@ type Line   = String
 type Text   = [Line]
 type Row    = Int
 type Column = Int
-type Count  = Word
+type Count  = Int
 
 data Cmd = Move Direction Count
          | Insert Char
          | Delete Count
+         | DelLine Count
          | Replace Count
          | Change Mode
          | None String
@@ -93,21 +94,21 @@ stream str st =  do str' <- stream' True str
                     putStrLn ""
                     vihsPrint False st
                     case str' of
-                      "j" -> return $ Move UP 1
-                      "k" -> return $ Move DOWN 1
-                      "h" -> return $ Move LEFT 1
-                      "l" -> return $ Move RIGHT 1
-                      "x" -> return $ Delete 1
-                      "r" -> return $ Change REPLACE
-                      "R" -> return $ Replace 1
-                      "i" -> return $ Insert 'i'
-                      "I" -> return $ Insert 'I'
-                      "a" -> return $ Insert 'a'
-                      "A" -> return $ Insert 'A'
-                      "o" -> return $ Insert 'o'
-                      "O" -> return $ Insert 'O'
-                      ":" -> return $ Change EX
-                      "dd" -> undefined
+                      "j"  -> return $ Move UP 1
+                      "k"  -> return $ Move DOWN 1
+                      "h"  -> return $ Move LEFT 1
+                      "l"  -> return $ Move RIGHT 1
+                      "x"  -> return $ Delete 1
+                      "r"  -> return $ Change REPLACE
+                      "R"  -> return $ Replace 1
+                      "i"  -> return $ Insert 'i'
+                      "I"  -> return $ Insert 'I'
+                      "a"  -> return $ Insert 'a'
+                      "A"  -> return $ Insert 'A'
+                      "o"  -> return $ Insert 'o'
+                      "O"  -> return $ Insert 'O'
+                      ":"  -> return $ Change EX
+                      "dd" -> return $ DelLine 1
                       _   -> do print str'
                                 vihsPrint False st
                                 stream str' st
@@ -177,6 +178,7 @@ normal cmd =  case cmd of
                 Move LEFT  _ -> modify $ move id           (subtract 1)
                 Move RIGHT _ -> modify $ move id           (+        1)
                 Delete     _ -> modify delete
+                DelLine    c -> modify $ delLine c
                 Insert ch    -> get >>= (lift . insert ch) >>= put
                 Replace 1    -> get >>= (lift . replace)   >>= put
                 Change mode  -> modify $ to mode
@@ -251,9 +253,18 @@ delete st =  if null $ currline st
                then st
                else edit (delete' (column st) (currline st)) st
 
-delete'        :: Column -> String -> String
-delete' c buff =  fst ++ tail snd
-                  where (fst, snd) = splitAt c buff
+delete'        :: Column -> Line -> Line
+delete' c line =  fst ++ tail snd
+                  where (fst, snd) = splitAt c line
+
+delLine :: Count -> VihsState -> VihsState
+delLine c st =  if length (buff st) <= 1
+                  then st { buff = [""] }
+                  else st { buff = fst ++ drop c snd 
+                          , row  = if (length $ buff st) - 1 < row st
+                                     then (length $ buff st) - 1
+                                     else row st }
+                where (fst, snd) = splitAt (row st) (buff st)
 
 replace    :: VihsState -> IO VihsState
 replace st =  do str <- replace' (column st) (currline st)

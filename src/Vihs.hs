@@ -36,7 +36,7 @@ type Column = Int
 type Count  = Word
 
 data Cmd = Move Direction Count
-         | Insert
+         | Insert Char
          | Delete Count
          | Replace Count
          | Change Mode
@@ -50,18 +50,9 @@ data Direction = UP
                  deriving (Show)
 
 data Mode = NORMAL
-          | INSERT InsCmd
+          | INSERT Char
           | VISUAL
           | EX
-            deriving (Show)
-
-data InsCmd = A Case
-            | I
-            | O
-              deriving (Show)
-
-data Case = Upper
-          | Lower
             deriving (Show)
 
 data ExCmd = Write FilePath
@@ -103,7 +94,12 @@ parseCmd ch =  case ch of
                  'x' -> Delete 1
                  'r' -> Replace 1
                  'R' -> Replace 1
-                 'i' -> Insert
+                 'i' -> Insert ch
+                 'I' -> Insert ch
+                 'a' -> Insert ch
+                 'A' -> Insert ch
+                 'o' -> Insert ch
+                 'O' -> Insert ch
                  ':' -> Change EX
                  _   -> None [ch]
 
@@ -144,7 +140,7 @@ normal cmd =  case cmd of
                 Move LEFT  _ -> modify $ move id           (subtract 1)
                 Move RIGHT _ -> modify $ move id           (+        1)
                 Delete     _ -> modify delete
-                Insert       -> get >>= (lift . insert)    >>= put
+                Insert ch    -> get >>= (lift . insert ch) >>= put
                 Replace 1    -> get >>= (lift . replace)   >>= put
                 Change EX    -> modify $ to EX
                 None str     -> get >>= (lift . nocmd str) >>= put
@@ -157,13 +153,13 @@ ex cmd =  case cmd of
             To NORMAL    -> modify $ to NORMAL
 
 move          :: (Row -> Row) -> (Column -> Column) -> VihsState -> VihsState
-move f1 f2 st =  st { row    = if (f1 (row st) < 0)
+move f1 f2 st =  st { row    = if (f1 (row st) <  0)
                                || (f1 (row st) >= filelength st)
                                  then row st
                                  else f1 $ row st
-                    , column = if (f2 (column st) < 0)
+                    , column = if (f2 (column st) <  0)
                                || (f2 (column st) >= length (currline st))
-                               || (f1 (row st)    < 0)
+                               || (f1 (row st)    <  0)
                                || (f1 (row st)    >= filelength st)
                                  then column st 
                                  else if length (buff st !! f1 (row st)) 
@@ -174,22 +170,35 @@ move f1 f2 st =  st { row    = if (f1 (row st) < 0)
                                         else f2 $ column st }
 
 vihsPrint          :: Bool -> VihsState -> IO ()
-vihsPrint isIns st = putStrLn $ unlines $ fst ++ [putCursor isIns st]
-                                          ++ tail snd
+vihsPrint isIns st = putStrLn
+                     . unlines
+                     . zipWith (++)
+                               (map ((++"\t") . show) [1 ..])
+                               $ fst 
+                                 ++ [putCursor isIns st]
+                                 ++ tail snd
                      where (fst, snd) = splitAt (row st) (buff st)
 
 putCursor          :: Bool -> VihsState -> String
 putCursor isIns st =  fst ++ (if isIns
                                 then '|'
                                 else '[') 
-                      : head snd : (if isIns
-                                      then []
-                                      else [']'])
-                      ++ tail snd --drop (column st + 1) (currline st)
+                      : (if null snd 
+                           then [']']
+                           else head snd : (if isIns
+                                              then []
+                                              else [']'])
+                           ++ tail snd) --drop (column st + 1) (currline st)
                       where (fst, snd) = splitAt (column st) (currline st)
+
+addLine        :: Row -> Text -> Text
+addLine r buff =  take (r + 1) buff ++ [""] ++ drop (r + 1) buff
 
 edit        :: String -> VihsState -> VihsState
 edit str st =  st { buff   = fst ++ str : [] ++ tail snd
+                  , column = if length str - 1 < column st
+                               then length str - 1
+                               else column st
                   , saved  = False }
                where (fst, snd) = splitAt (row st) (buff st)
 
@@ -210,13 +219,27 @@ replace' c buff =  do putStr "REPLACE>> "
                       return $ fst ++ [ch] ++ tail snd
                       where (fst, snd) = splitAt c buff
 
-insert    :: VihsState -> IO VihsState
-insert st =  do vihsPrint True st
-                str' <- maybe "" (\str -> insert' (column st) str (currline st))
-                              <$> runInputT defaultSettings (getInputLine "\nINSERT>> ")
-                return $ edit str' st
-{-
-insert st =  do str <- fromMaybe "" 
+insert       :: Char -> VihsState -> IO VihsState
+insert ch st =  do vihsPrint True st'
+                   str' <- maybe ""
+                                 (\str -> insert' (column st')
+                                                  str
+                                                  (currline st'))
+                                 <$> runInputT defaultSettings
+                                               (getInputLine "\nINSERT>> ")
+                   return $ edit str' st'
+                   where st' = case ch of
+                                 'i' -> st
+                                 'a' -> st { column = column st + 1 }
+                                 'I' -> st { column = 0 }
+                                 'A' -> st { column = length $ currline st }
+                                 'o' -> st { row    = row st + 1
+                                           , column = 0 
+                                           , buff   = addLine (row st) (buff st) }
+                                 'O' -> st { row    = row st
+                                           , column = 0 
+                                           , buff   = addLine (row st - 1) (buff st) }
+        {- insert st =  do str <- fromMaybe "" 
                     <$> (runInputT defaultSettings $ getInputLine "\n> ")
                 return $ edit (insert' (column st) str (currline st)) st
 -}

@@ -26,6 +26,7 @@ data VihsState = VihsState { path   :: FilePath
                            , mode   :: Mode
                            , saved  :: Bool
                            , quited :: Bool
+                           , number :: Bool
                            } deriving (Show)
 
 newtype Cursor = Cursor (Int, Int)
@@ -63,6 +64,7 @@ data ExCmd = Write FilePath
            | Quit
            | To Mode
            | Term
+           | Number Bool
              deriving (Show)
 
 vihsInit           :: FilePath -> Text -> VihsState
@@ -72,7 +74,8 @@ vihsInit path buff =  VihsState { path   = path
                                 , column = 0
                                 , mode   = NORMAL
                                 , saved  = True
-                                , quited = False }
+                                , quited = False 
+                                , number = False }
 
 vihsDefault :: VihsState
 vihsDefault =  vihsInit "vihstest.txt" 
@@ -149,6 +152,9 @@ parseExCmd cmd =  case head (words cmd) of
                     "write"    -> Write $ words cmd !! 1
                     "q"        -> Quit
                     "quit"     -> Quit
+                    "set"      -> case words cmd !! 1 of
+                                    "number"   -> Number True
+                                    "nonumber" -> Number False
                     "terminal" -> Term
                     "BS"       -> To NORMAL
                     "\b"       -> To NORMAL
@@ -196,6 +202,7 @@ ex cmd =  case cmd of
             Write path   -> get >>= (lift . write path . to NORMAL)      >>= put
             Quit         -> modify $ quit . to NORMAL
             Term         -> get >>= (lift . term . to NORMAL)      >>= put
+            Number b     -> modify $ setnum b . to NORMAL
             To NORMAL    -> modify $ to NORMAL
 
 move          :: (Row -> Row) -> (Column -> Column) -> VihsState -> VihsState
@@ -217,12 +224,14 @@ move f1 f2 st =  st { row    = if (f1 (row st) <  0)
 
 vihsPrint          :: Bool -> VihsState -> IO ()
 vihsPrint isIns st =  do print st
-                         putStrLn $ unlines 
-                                    . zipWith (++)
-                                              (map ((++"\t") . show) [1 ..])
-                                              $ fst 
+                         putStrLn $ unlines ((if number st
+                                       then zipWith (++)
+                                                    (map ((++"\t") . show)
+                                                    [1 ..])
+                                       else id)
+                                              (fst 
                                                 ++ [putCursor isIns st]
-                                                ++ tail snd
+                                                ++ tail snd))
                          where (fst, snd) = splitAt (row st) (buff st)
 
 putCursor          :: Bool -> VihsState -> String
@@ -315,6 +324,9 @@ write path st =  do writeFile path (unlines (buff st))
 
 to         :: Mode -> VihsState -> VihsState
 to mode st =  st { mode = mode }
+
+setnum      :: Bool -> VihsState -> VihsState
+setnum b st =  st { number = b }
 
 term    :: VihsState -> IO VihsState
 term st =  do system "$SHELL"

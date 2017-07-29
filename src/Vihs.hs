@@ -89,7 +89,7 @@ currline st =  buff st !! row st
 filelength    :: VihsState -> Int
 filelength st =  length (buff st)
 
-stream :: String -> VihsState-> IO Cmd
+stream        :: String -> VihsState-> IO Cmd
 stream str st =  do str' <- stream' True str
                     putStrLn ""
                     vihsPrint False st
@@ -257,7 +257,7 @@ delete'        :: Column -> Line -> Line
 delete' c line =  fst ++ tail snd
                   where (fst, snd) = splitAt c line
 
-delLine :: Count -> VihsState -> VihsState
+delLine      :: Count -> VihsState -> VihsState
 delLine c st =  if length (buff st) <= 1
                   then st { buff = [""] }
                   else st { buff = fst ++ drop c snd 

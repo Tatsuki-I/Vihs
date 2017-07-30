@@ -2,8 +2,8 @@ module Main where
 
 import           Vihs
 
-main :: IO VihsState
-main =  vihsTestRun
+main :: IO ()
+main =  vihsTestRun >> return ()
 {-
 import           System.Environment (getArgs)
 

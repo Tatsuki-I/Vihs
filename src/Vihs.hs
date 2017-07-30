@@ -35,6 +35,7 @@ type Text   = [Line]
 type Row    = Int
 type Column = Int
 type Count  = Int
+type Option = String
 
 data Cmd = Move Direction Count
          | Insert  Char
@@ -62,6 +63,7 @@ data ExCmd = Write FilePath
            | Quit
            | To     Mode
            | Term
+           | Git    Option
            | Number Bool
              deriving (Show)
 
@@ -136,6 +138,7 @@ parseExCmd cmd =  case head (words cmd) of
                                              "number"   -> True
                                              "nonumber" -> False
                     "terminal" -> Term
+                    "git"      -> Git . unwords . drop 1 $ words cmd
                     "BS"       -> To NORMAL
                     "\b"       -> To NORMAL
                     _          -> undefined
@@ -179,9 +182,10 @@ exRun st =  do cmd <- fromMaybe ""
 
 ex     :: ExCmd -> StateT VihsState IO ()
 ex cmd =  case cmd of
-            Write path   -> get >>= (lift . write path . to NORMAL)      >>= put
+            Write path   -> get >>= (lift . write path . to NORMAL) >>= put
             Quit         -> modify $ quit . to NORMAL
-            Term         -> get >>= (lift . term . to NORMAL)      >>= put
+            Term         -> get >>= (lift . term . to NORMAL)       >>= put
+            Git opt      -> get >>= (lift . (git opt) . to NORMAL)       >>= put
             Number b     -> modify $ setnum b . to NORMAL
             To NORMAL    -> modify $ to NORMAL
 
@@ -347,6 +351,10 @@ setnum b st =  st { number = b }
 term    :: VihsState -> IO VihsState
 term st =  do system "$SHELL"
               return st
+
+git        :: Option -> VihsState -> IO VihsState
+git opt st =  do system $ "git " ++ opt
+                 return st
 
 nocmd        :: String -> VihsState -> IO VihsState
 nocmd str st =  do putStrLn $ "No such command: \'" 

@@ -176,7 +176,7 @@ normal cmd =  case cmd of
                 Insert ch    -> get >>= (lift . insert ch) >>= put
                 Replace 1    -> get >>= (lift . replace)   >>= put
                 Change mode  -> modify $ to mode
-                None str     -> get >>= (lift . nocmd str) >>= put
+                None str     -> get >>= (lift . nocmd str)
 
 exRun    :: VihsState -> IO VihsState
 exRun st =  do cmd <- fromMaybe "" 
@@ -189,9 +189,9 @@ ex     :: ExCmd -> StateT VihsState IO ()
 ex cmd =  case cmd of
             Write path   -> get >>= (lift . write path . to NORMAL) >>= put
             Quit         -> modify $ quit . to NORMAL
-            Term         -> get >>= (lift . term . to NORMAL)       >>= put
-            Git opt      -> get >>= (lift . git opt . to NORMAL)    >>= put
-            Stack opt    -> get >>= (lift . stack opt . to NORMAL)  >>= put
+            Term         -> get >>= (lift . term . to NORMAL)
+            Git opt      -> get >>= (lift . git opt . to NORMAL)
+            Stack opt    -> get >>= (lift . stack opt . to NORMAL)
             Number b     -> modify $ setnum b . to NORMAL
             To NORMAL    -> modify $ to NORMAL
 
@@ -353,19 +353,15 @@ to mode st =  st { mode = mode }
 setnum      :: Bool -> VihsState -> VihsState
 setnum b st =  st { number = b }
 
-term    :: VihsState -> IO VihsState
-term st =  do system "$SHELL"
-              return st
+term    :: VihsState -> IO ()
+term st =  system "$SHELL" >>= print
 
-git        :: Option -> VihsState -> IO VihsState
-git opt st =  do system $ "git " ++ opt
-                 return st
+git        :: Option -> VihsState -> IO ()
+git opt st =  system ("git " ++ opt) >>= print
 
-stack        :: Option -> VihsState -> IO VihsState
-stack opt st =  do system $ "stack " ++ opt
-                   return st
+stack        :: Option -> VihsState -> IO ()
+stack opt st =  system ("stack " ++ opt) >>= print
 
-nocmd        :: String -> VihsState -> IO VihsState
-nocmd str st =  do putStrLn $ "No such command: \'" 
-                              ++ str ++ "\'"
-                   return st
+nocmd        :: String -> VihsState -> IO ()
+nocmd str st =  putStrLn $ "No such command: \'" 
+                           ++ str ++ "\'"

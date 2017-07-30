@@ -1,9 +1,10 @@
 module Main where
 
-import           Vihs
+import Vihs
+import Control.Monad
 
 main :: IO ()
-main =  vihsTestRun >> return ()
+main =  Control.Monad.void vihsTestRun
 {-
 import           System.Environment (getArgs)
 

@@ -6,28 +6,26 @@ module Vihs
      , vihsDefault
      ) where
 
-
---instance NFData TypeRep where
-
 import Control.Monad.State
 import System.Console.Haskeline
 import Data.Maybe
 import System.Process
 import HiddenChar.HiddenChar
 
---newtype TypeRep = TypeRep
---                  deriving (NFData)
+data VihsState = VihsState { mode   :: Mode
+                           , quited :: Bool
+                           , number :: Bool
+                           } deriving (Show)
 
-data VihsState = VihsState { path   :: FilePath
+data FileState = FileState { path   :: FilePath
                            , buff   :: Text
                            , row    :: Row
                            , column :: Column
                            , yanked :: String
-                           , mode   :: Mode
                            , saved  :: Bool
-                           , quited :: Bool
-                           , number :: Bool
                            } deriving (Show)
+
+type EditorState = (VihsState, FileState)
 
 newtype Cursor = Cursor (Int, Int)
                  deriving (Show)
@@ -70,33 +68,38 @@ data ExCmd = Write FilePath
            | Number Bool
              deriving (Show)
 
-vihsInit           :: FilePath -> Text -> VihsState
-vihsInit path buff =  VihsState { path   = path
+vihsInit :: VihsState
+vihsInit =  VihsState { mode   = NORMAL
+                      , quited = False 
+                      , number = False }
+
+fileInit           :: FilePath -> Text -> FileState
+fileInit path buff =  FileState { path   = path
                                 , buff   = buff
                                 , row    = 0
                                 , column = 0
                                 , yanked = ""
-                                , mode   = NORMAL
-                                , saved  = True
-                                , quited = False 
-                                , number = False }
+                                , saved  = True }
 
-vihsDefault :: VihsState
-vihsDefault =  vihsInit "vihstest.txt" 
-                        [ "Hello Vihs!"
-                        , "I'm 2nd line" 
-                        , "I'm 3rd line"]
+editorInit       :: VihsState -> FileState -> EditorState
+editorInit vs fs =  (vs, fs)
 
-vihsTestRun :: IO VihsState
+vihsDefault :: EditorState
+vihsDefault =  (vihsInit ,fileInit "vihstest.txt" 
+                                   [ "Hello Vihs!"
+                                   , "I'm 2nd line" 
+                                   , "I'm 3rd line"])
+
+vihsTestRun :: IO EditorState
 vihsTestRun =  vihsRun vihsDefault
 
-currline    :: VihsState -> Line
-currline st =  buff st !! row st
+currline    :: FileState -> Line
+currline fs =  buff fs !! row fs
 
-filelength    :: VihsState -> Int
-filelength st =  length (buff st)
+filelength    :: FileState -> Int
+filelength fs =  length (buff fs)
 
-parseCmd        :: String -> VihsState -> IO Cmd
+parseCmd        :: String -> EditorState -> IO Cmd
 parseCmd str st =  do str' <- stream' True str
                       putStrLn ""
                       vihsPrint False st
@@ -151,21 +154,21 @@ parseExCmd cmd =  case head (words cmd) of
 loopM     :: (Monad m) => (a -> m a) -> a -> m a
 loopM f a =  loopM f =<< f a
 
-vihsRun    :: VihsState -> IO VihsState
-vihsRun st =  do vihsPrint False st
-                 if quited st
-                   then return st
-                   else case mode st of
-                          NORMAL    -> normalRun st
-                          EX        -> exRun     st
-                          INSERT ch -> insert ch st
-                          REPLACE   -> replace st
+vihsRun             :: EditorState -> IO EditorState
+vihsRun st@(vs, fs) =  do vihsPrint False st
+                          if quited vs
+                            then return st
+                            else case mode vs of
+                                   NORMAL    -> normalRun st
+                                   EX        -> exRun     st
+                                   INSERT ch -> insert ch st
+                                   REPLACE   -> replace st
 
-normalRun    :: VihsState -> IO VihsState
+normalRun    :: EditorState -> IO EditorState
 normalRun st =  do cmd <- parseCmd "" st
                    normal cmd `execStateT` st >>= vihsRun
 
-normal     :: Cmd -> StateT VihsState IO ()
+normal     :: Cmd -> StateT EditorState IO ()
 normal cmd =  case cmd of
                 Move UP    _ -> modify $ move (+        1) id
                 Move DOWN  _ -> modify $ move (subtract 1) id
@@ -178,14 +181,14 @@ normal cmd =  case cmd of
                 Change mode  -> modify $ to mode
                 None str     -> get >>= (lift . nocmd str)
 
-exRun    :: VihsState -> IO VihsState
+exRun    :: EditorState -> IO EditorState
 exRun st =  do cmd <- fromMaybe "" 
                    <$> runInputT defaultSettings (getInputLine ":")
                putStrLn ""
-               newSt <- ex (parseExCmd cmd) `execStateT` st >>= vihsRun
-               return $ newSt { mode = NORMAL }
+               (nvs, nfs) <- ex (parseExCmd cmd) `execStateT` st >>= vihsRun
+               return $ (nvs { mode = NORMAL }, nfs)
 
-ex     :: ExCmd -> StateT VihsState IO ()
+ex     :: ExCmd -> StateT EditorState IO ()
 ex cmd =  case cmd of
             Write path   -> get >>= (lift . write path . to NORMAL) >>= put
             Quit         -> modify $ quit . to NORMAL
@@ -195,79 +198,89 @@ ex cmd =  case cmd of
             Number b     -> modify $ setnum b . to NORMAL
             To NORMAL    -> modify $ to NORMAL
 
-move          :: (Row -> Row) -> (Column -> Column) -> VihsState -> VihsState
-move f1 f2 st =  st { row    = (if (f1 (row st) <  0)
-                                || (f1 (row st) >= filelength st)
-                                  then id
-                                  else f1) $ row st
-                    , column = if (f2 (column st) <  0)
-                               || (f2 (column st) >= length (currline st))
-                               || (f1 (row st)    <  0)
-                               || (f1 (row st)    >= filelength st)
-                                 then column st 
-                                 else if length (buff st !! f1 (row st)) 
-                                         <  length (currline st)
-                                      && length (buff st !! f1 (row st))
-                                         <= column st
-                                        then length (buff st !! f1 (row st)) - 1
-                                        else f2 $ column st }
+move                :: (Row -> Row) -> (Column -> Column) ->
+                       EditorState -> EditorState
+move f1 f2 
+     (vs, fs) =  (vs
+                 ,fs { row    = (if (f1 (row fs) <  0)
+                                 || (f1 (row fs) >= filelength fs)
+                                   then id
+                                   else f1) $ row fs
+                     , column = if (f2 (column fs) <  0)
+                                || (f2 (column fs) >= length (currline fs))
+                                || (f1 (row fs)    <  0)
+                                || (f1 (row fs)    >= filelength fs)
+                                  then column fs 
+                                  else if length (buff fs !! f1 (row fs)) 
+                                          <  length (currline fs)
+                                       && length (buff fs !! f1 (row fs))
+                                          <= column fs
+                                         then length (buff fs !! f1 (row fs)) - 1
+                                         else f2 $ column fs })
 
-vihsPrint          :: Bool -> VihsState -> IO ()
-vihsPrint isIns st =  do print st
-                         (putStrLn . unlines) ((if number st
-                                       then zipWith (++)
-                                                    (map ((++"\t") . show)
-                                                    [1 ..])
-                                       else id) (fst ++ [putCursor isIns st]
-                                                     ++ tail snd))
-                         where (fst, snd) = splitAt (row st) (buff st)
+vihsPrint             :: Bool -> EditorState -> IO ()
+vihsPrint isIns
+          st@(vs, fs) =  do print st
+                            (putStrLn . unlines) ((
+                              if number vs
+                                then zipWith (++)
+                                             (map ((++"\t") . show)
+                                             [1 ..])
+                                else id) (fst ++ [putCursor isIns st]
+                                              ++ tail snd))
+                            where (fst, snd) = splitAt (row fs) (buff fs)
 
-putCursor          :: Bool -> VihsState -> String
-putCursor isIns st =  fst ++ (if isIns
-                                then '|'
-                                else '[') 
-                      : (if null snd 
-                           then [']']
-                           else head snd : (if isIns
-                                              then []
-                                              else [']'])
-                           ++ tail snd) --drop (column st + 1) (currline st)
-                      where (fst, snd) = splitAt (column st) (currline st)
+putCursor               :: Bool -> EditorState -> String
+putCursor isIns (_, fs) =  fst ++ (if isIns
+                                     then '|'
+                                     else '[') 
+                           : (if null snd 
+                                then [']']
+                                else head snd : (if isIns
+                                                   then []
+                                                   else [']'])
+                                ++ tail snd)
+                           where (fst, snd) = splitAt (column fs) (currline fs)
 
 addLine        :: Row -> Text -> Text
 addLine r buff =  take (r + 1) buff ++ [""] ++ drop (r + 1) buff
 
-edit        :: String -> VihsState -> VihsState
-edit str st =  st { buff   = fst ++ str : [] ++ tail snd
-                  , column = if length str < length (currline st)
-                               then if length str - 1 < column st
-                                 then length str - 1
-                                 else column st
-                               else column st
-                                    + length str
-                                    - length (currline st)
-                  , saved  = False }
-               where (fst, snd) = splitAt (row st) (buff st)
+edit                 :: String -> EditorState -> EditorState
+edit str
+     st@(vs, fs) =  (vs, fs { buff   = fst ++ str : [] ++ tail snd
+                            , column = if length str < length (currline fs)
+                                         then if length str - 1 < column fs
+                                           then length str - 1
+                                           else column fs
+                                         else column fs
+                                              + length str
+                                              - length (currline fs)
+                            , saved  = False })
+                    where (fst, snd) = splitAt (row fs) (buff fs)
 
-delete      :: Count -> VihsState -> VihsState
-delete c st =  (if (null . currline) st
-                  then id
-                  else edit $ fst ++ drop c snd) st { yanked = take c snd }
-               where (fst, snd) = splitAt (column st) (currline st)
+delete               :: Count -> EditorState -> EditorState
+delete c
+       st@(vs, fs) =  (if (null . currline) fs
+                        then id
+                        else edit $ fst ++ drop c snd) (vs
+                                                       ,fs { yanked = take c
+                                                                           snd })
+                      where (fst, snd) = splitAt (column fs) (currline fs)
 
-delLine      :: Count -> VihsState -> VihsState
-delLine c st =  if length (buff st) <= 1
-                  then st { buff = [""] }
-                  else st { buff = fst ++ drop c snd 
-                          , row  = if length (buff st) - 1 < row st
-                                     then length (buff st) - 1
-                                     else row st
-                          , yanked = unlines $ take c snd}
-                where (fst, snd) = splitAt (row st) (buff st)
+delLine               :: Count -> EditorState -> EditorState
+delLine c st@(vs, fs) =  if length (buff fs) <= 1
+                           then (vs, fs { buff = [""] })
+                           else (vs, fs { buff = fst ++ drop c snd 
+                                        , row  = if length (buff fs) - 1 
+                                                    < row fs
+                                                   then length (buff fs) - 1
+                                                   else row fs
+                                        , yanked = unlines $ take c snd})
+                         where (fst, snd) = splitAt (row fs) (buff fs)
 
-replace    :: VihsState -> IO VihsState
-replace st =  do str <- replace' (column st) (currline st)
-                 (vihsRun . edit str) (to NORMAL st)
+replace             :: EditorState -> IO EditorState
+replace st@(vs, fs) =  do str <- replace' (column fs) (currline fs)
+                          (vihsRun . edit str) (to NORMAL st)
 
 replace'        :: Column -> String -> IO String
 replace' c buff =  do putStr "REPLACE>> "
@@ -275,93 +288,99 @@ replace' c buff =  do putStr "REPLACE>> "
                       return $ fst ++ [ch] ++ tail snd
                       where (fst, snd) = splitAt c buff
 
-insRun    :: VihsState -> IO VihsState
-insRun st =  do vihsPrint True st
-                ch <- getHiddenChar
-                putStrLn ""
-                case ch of
-                  '\ESC' -> return st { buff = fstb
-                                               ++ (if last (currline st)
-                                                      == '\n'
-                                                     then (++ [""])
-                                                     else (++ []))
-                                               (lines (currline st))
-                                               ++ tail sndb
-                                      , row = (if last (currline st)
-                                                  == '\n'
-                                                 then id
-                                                 else subtract 
-                                                        (if head (currline st)
+insRun             :: EditorState -> IO EditorState
+insRun st@(vs, fs) =  do vihsPrint True st
+                         ch <- getHiddenChar
+                         putStrLn ""
+                         case ch of
+                           '\ESC' -> return (vs
+                                            ,fs { buff = fstb
+                                                         ++ (if last (currline fs)
+                                                                == '\n'
+                                                               then (++ [""])
+                                                               else (++ []))
+                                                         (lines (currline fs))
+                                                         ++ tail sndb
+                                                , row = (if last (currline fs)
                                                             == '\n'
-                                                           then 2
-                                                           else 1))
-                                              (row st
-                                              + length (lines $ currline st))
-                                      , column = column st
-                                                 - (length 
-                                                    . unlines
-                                                    . init
-                                                    . lines $ currline st) }
-                  ch | ch =='\DEL'
-                     , ch == '\b' -> do print ch
-                                        insRun $ if null fst
-                                                   then st
-                                                   else edit (init fst ++ snd)
-                                                            st { column = column st - 1 }
-                  _      -> do print ch
-                               insRun $ edit (fst ++ [ch] ++ snd) st
-                where (fst,  snd)  = splitAt (column st) (currline st)
-                      (fstb, sndb) = splitAt (row st)    (buff st)
+                                                           then id
+                                                           else subtract 
+                                                                  (if head (currline fs)
+                                                                      == '\n'
+                                                                     then 2
+                                                                     else 1))
+                                                        (row fs
+                                                        + length (lines $ currline fs))
+                                                , column = column fs
+                                                           - (length 
+                                                              . unlines
+                                                              . init
+                                                              . lines $ currline fs) })
+                           ch | ch =='\DEL'
+                              , ch == '\b' -> do print ch
+                                                 insRun $ if null fst
+                                                            then st
+                                                            else edit (init fst ++ snd)
+                                                                      (vs, fs { column = column fs - 1 })
+                           _      -> do print ch
+                                        insRun $ edit (fst ++ [ch] ++ snd) st
+                         where (fst,  snd)  = splitAt (column fs) (currline fs)
+                               (fstb, sndb) = splitAt (row fs)    (buff fs)
 
-insert       :: Char -> VihsState -> IO VihsState
-insert ch st =  do vihsPrint True st'
-                   st'' <- insRun st'
-                   return $ to NORMAL st''
-                   where (fstb, sndb) = splitAt (row st) (buff st)
-                         st' = case ch of
-                                 'i' -> st
-                                 'a' -> st { column = column st + 1 }
-                                 'I' -> st { column = 0 }
-                                 'A' -> st { column = length $ currline st }
-                                 'o' -> st { row    = row st
-                                           , column = length (currline st) + 1
-                                           , buff   = fstb 
-                                                      ++ [currline st ++ "\n"]
-                                                      ++  tail sndb }
-                                 'O' -> st { row    = row st
-                                           , column = 0
-                                           , buff   = fstb
-                                                      ++ ["\n" ++ currline st]
-                                                      ++ tail sndb }
-                                               --addLine (row st - 1) (buff st) }
+insert                :: Char -> EditorState -> IO EditorState
+insert ch st@(vs, fs) =  do vihsPrint True st'
+                            st'' <- insRun st'
+                            return $ to NORMAL st''
+                            where (fstb, sndb) = splitAt (row fs) (buff fs)
+                                  st' = case ch of
+                                          'i' -> st
+                                          'a' -> (vs
+                                                 ,fs { column = column fs + 1 })
+                                          'I' -> (vs
+                                                 ,fs { column = 0 })
+                                          'A' -> (vs
+                                                 ,fs { column = length $ currline fs })
+                                          'o' -> (vs
+                                                 ,fs { row    = row fs
+                                                     , column = length (currline fs) + 1
+                                                     , buff   = fstb
+                                                                ++ [currline fs ++ "\n"]
+                                                                ++  tail sndb })
+                                          'O' -> (vs
+                                                 ,fs { row    = row fs
+                                                     , column = 0
+                                                     , buff   = fstb
+                                                                ++ ["\n" ++ currline fs]
+                                                               ++ tail sndb })
 
 insert'            :: Column -> Line -> Line -> Line
 insert' c str line =  fst ++ str ++ snd-- ++ drop c line
                       where (fst, snd) = splitAt c line
 
-quit    :: VihsState -> VihsState
-quit st =  st { quited = True }
+quit          :: EditorState -> EditorState
+quit (vs, fs) =  (vs { quited = True }, fs)
 
-write         :: FilePath -> VihsState -> IO VihsState
-write path st =  do writeFile path (unlines (buff st))
-                    return st { path = path
-                             , saved = True }
+write               :: FilePath -> EditorState -> IO EditorState
+write path (vs, fs) =  do writeFile path (unlines (buff fs))
+                          return (vs
+                                 ,fs { path  = path
+                                      , saved = True })
 
-to         :: Mode -> VihsState -> VihsState
-to mode st =  st { mode = mode }
+to               :: Mode -> EditorState -> EditorState
+to mode (vs, fs) =  (vs { mode = mode }, fs)
 
-setnum      :: Bool -> VihsState -> VihsState
-setnum b st =  st { number = b }
+setnum               :: Bool -> EditorState -> EditorState
+setnum b st@(vs, fs) =  (vs { number = b }, fs)
 
-term    :: VihsState -> IO ()
-term st =  system "$SHELL" >>= print
+term   :: EditorState -> IO ()
+term _ =  system "$SHELL" >>= print
 
-git        :: Option -> VihsState -> IO ()
-git opt st =  system ("git " ++ opt) >>= print
+git       :: Option -> EditorState -> IO ()
+git opt _ =  system ("git " ++ opt) >>= print
 
-stack        :: Option -> VihsState -> IO ()
-stack opt st =  system ("stack " ++ opt) >>= print
+stack       :: Option -> EditorState -> IO ()
+stack opt _ =  system ("stack " ++ opt) >>= print
 
-nocmd        :: String -> VihsState -> IO ()
-nocmd str st =  putStrLn $ "No such command: \'" 
-                           ++ str ++ "\'"
+nocmd       :: String -> EditorState -> IO ()
+nocmd str _ =  putStrLn $ "No such command: \'" 
+                          ++ str ++ "\'"

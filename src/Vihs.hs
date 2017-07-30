@@ -13,6 +13,8 @@ import Control.Monad.State
 import System.Console.Haskeline
 import Data.Maybe
 import System.Process
+import Data.Char
+import System.IO
 
 --newtype TypeRep = TypeRep
 --                  deriving (NFData)
@@ -125,7 +127,8 @@ switcher str ch =  case ch of
                      _      -> str ++ [ch]
 
 stream'              :: Bool -> String -> IO String
-stream' finished str =  do ch <- getChar
+stream' finished str =  do hSetBuffering stdin NoBuffering
+                           ch <- getChar
                            return $ switcher str ch
 
 parseExCmd     :: String -> ExCmd
@@ -267,12 +270,14 @@ replace st =  do str <- replace' (column st) (currline st)
 
 replace'        :: Column -> String -> IO String
 replace' c buff =  do putStr "REPLACE>> "
+                      hSetBuffering stdin NoBuffering
                       ch <- getChar
                       return $ fst ++ [ch] ++ tail snd
                       where (fst, snd) = splitAt c buff
 
 insRun    :: VihsState -> IO VihsState
 insRun st =  do vihsPrint True st
+                hSetBuffering stdin NoBuffering
                 ch <- getChar
                 putStrLn ""
                 case ch of

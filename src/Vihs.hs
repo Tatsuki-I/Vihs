@@ -225,14 +225,12 @@ move f1 f2 st =  st { row    = (if (f1 (row st) <  0)
 
 vihsPrint          :: Bool -> VihsState -> IO ()
 vihsPrint isIns st =  do print st
-                         putStrLn $ unlines ((if number st
+                         (putStrLn . unlines) ((if number st
                                        then zipWith (++)
                                                     (map ((++"\t") . show)
                                                     [1 ..])
-                                       else id)
-                                              (fst 
-                                                ++ [putCursor isIns st]
-                                                ++ tail snd))
+                                       else id) (fst ++ [putCursor isIns st]
+                                                     ++ tail snd))
                          where (fst, snd) = splitAt (row st) (buff st)
 
 putCursor          :: Bool -> VihsState -> String
@@ -263,7 +261,7 @@ edit str st =  st { buff   = fst ++ str : [] ++ tail snd
                where (fst, snd) = splitAt (row st) (buff st)
 
 delete    :: VihsState -> VihsState
-delete st =  (if null $ currline st
+delete st =  (if (null . currline) st
                 then id
                 else edit $ delete' (column st) $ currline st) st
 
@@ -282,7 +280,7 @@ delLine c st =  if length (buff st) <= 1
 
 replace    :: VihsState -> IO VihsState
 replace st =  do str <- replace' (column st) (currline st)
-                 vihsRun $ edit str $ to NORMAL st
+                 (vihsRun . edit str) (to NORMAL st)
 
 replace'        :: Column -> String -> IO String
 replace' c buff =  do putStr "REPLACE>> "

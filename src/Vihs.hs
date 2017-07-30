@@ -186,7 +186,7 @@ exRun st =  do cmd <- fromMaybe ""
                    <$> runInputT defaultSettings (getInputLine ":")
                putStrLn ""
                (nvs, nfs) <- ex (parseExCmd cmd) `execStateT` st >>= vihsRun
-               return $ (nvs { mode = NORMAL }, nfs)
+               return (nvs { mode = NORMAL }, nfs)
 
 ex     :: ExCmd -> StateT EditorState IO ()
 ex cmd =  case cmd of

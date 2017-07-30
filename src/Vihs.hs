@@ -66,6 +66,7 @@ data ExCmd = Write FilePath
            | To     Mode
            | Term
            | Git    Option
+           | Stack  Option
            | Number Bool
              deriving (Show)
 
@@ -142,6 +143,7 @@ parseExCmd cmd =  case head (words cmd) of
                                              "nonumber" -> False
                     "terminal" -> Term
                     "git"      -> Git . unwords . drop 1 $ words cmd
+                    "stack"    -> Stack . unwords . drop 1 $ words cmd
                     "BS"       -> To NORMAL
                     "\b"       -> To NORMAL
                     _          -> undefined
@@ -189,6 +191,7 @@ ex cmd =  case cmd of
             Quit         -> modify $ quit . to NORMAL
             Term         -> get >>= (lift . term . to NORMAL)       >>= put
             Git opt      -> get >>= (lift . git opt . to NORMAL)    >>= put
+            Stack opt    -> get >>= (lift . stack opt . to NORMAL)  >>= put
             Number b     -> modify $ setnum b . to NORMAL
             To NORMAL    -> modify $ to NORMAL
 
@@ -299,16 +302,12 @@ insRun st =  do vihsPrint True st
                                                     . unlines
                                                     . init
                                                     . lines $ currline st) }
-                  '\DEL' -> do print ch
-                               insRun $ if null fst
-                                          then st
-                                          else edit (init fst ++ snd)
-                                                   st { column = column st - 1 }
-                  '\b'   -> do print ch
-                               insRun $ if null fst
-                                          then st
-                                          else edit (init fst ++ snd)
-                                                   st { column = column st - 1 }
+                  ch | ch =='\DEL'
+                     , ch == '\b' -> do print ch
+                                        insRun $ if null fst
+                                                   then st
+                                                   else edit (init fst ++ snd)
+                                                            st { column = column st - 1 }
                   _      -> do print ch
                                insRun $ edit (fst ++ [ch] ++ snd) st
                 where (fst,  snd)  = splitAt (column st) (currline st)
@@ -361,6 +360,10 @@ term st =  do system "$SHELL"
 git        :: Option -> VihsState -> IO VihsState
 git opt st =  do system $ "git " ++ opt
                  return st
+
+stack        :: Option -> VihsState -> IO VihsState
+stack opt st =  do system $ "stack " ++ opt
+                   return st
 
 nocmd        :: String -> VihsState -> IO VihsState
 nocmd str st =  do putStrLn $ "No such command: \'" 

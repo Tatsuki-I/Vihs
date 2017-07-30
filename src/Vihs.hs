@@ -304,6 +304,11 @@ insRun st =  do vihsPrint True st
                                           then st
                                           else edit (init fst ++ snd)
                                                    st { column = column st - 1 }
+                  '\b'   -> do print ch
+                               insRun $ if null fst
+                                          then st
+                                          else edit (init fst ++ snd)
+                                                   st { column = column st - 1 }
                   _      -> do print ch
                                insRun $ edit (fst ++ [ch] ++ snd) st
                 where (fst,  snd)  = splitAt (column st) (currline st)

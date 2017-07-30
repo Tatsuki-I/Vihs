@@ -22,6 +22,7 @@ data VihsState = VihsState { path   :: FilePath
                            , buff   :: Text
                            , row    :: Row
                            , column :: Column
+                           , yanked :: String
                            , mode   :: Mode
                            , saved  :: Bool
                            , quited :: Bool
@@ -73,6 +74,7 @@ vihsInit path buff =  VihsState { path   = path
                                 , buff   = buff
                                 , row    = 0
                                 , column = 0
+                                , yanked = ""
                                 , mode   = NORMAL
                                 , saved  = True
                                 , quited = False 
@@ -167,7 +169,7 @@ normal cmd =  case cmd of
                 Move DOWN  _ -> modify $ move (subtract 1) id
                 Move LEFT  _ -> modify $ move id           (subtract 1)
                 Move RIGHT _ -> modify $ move id           (+        1)
-                Delete     _ -> modify delete
+                Delete     c -> modify $ delete  c
                 DelLine    c -> modify $ delLine c
                 Insert ch    -> get >>= (lift . insert ch) >>= put
                 Replace 1    -> get >>= (lift . replace)   >>= put
@@ -186,7 +188,7 @@ ex cmd =  case cmd of
             Write path   -> get >>= (lift . write path . to NORMAL) >>= put
             Quit         -> modify $ quit . to NORMAL
             Term         -> get >>= (lift . term . to NORMAL)       >>= put
-            Git opt      -> get >>= (lift . (git opt) . to NORMAL)       >>= put
+            Git opt      -> get >>= (lift . git opt . to NORMAL)    >>= put
             Number b     -> modify $ setnum b . to NORMAL
             To NORMAL    -> modify $ to NORMAL
 
@@ -244,14 +246,11 @@ edit str st =  st { buff   = fst ++ str : [] ++ tail snd
                   , saved  = False }
                where (fst, snd) = splitAt (row st) (buff st)
 
-delete    :: VihsState -> VihsState
-delete st =  (if (null . currline) st
-                then id
-                else edit $ delete' (column st) $ currline st) st
-
-delete'        :: Column -> Line -> Line
-delete' c line =  fst ++ tail snd
-                  where (fst, snd) = splitAt c line
+delete      :: Count -> VihsState -> VihsState
+delete c st =  (if (null . currline) st
+                  then id
+                  else edit $ fst ++ drop c snd) st { yanked = take c snd }
+               where (fst, snd) = splitAt (column st) (currline st)
 
 delLine      :: Count -> VihsState -> VihsState
 delLine c st =  if length (buff st) <= 1
@@ -259,7 +258,8 @@ delLine c st =  if length (buff st) <= 1
                   else st { buff = fst ++ drop c snd 
                           , row  = if length (buff st) - 1 < row st
                                      then length (buff st) - 1
-                                     else row st }
+                                     else row st
+                          , yanked = unlines $ take c snd}
                 where (fst, snd) = splitAt (row st) (buff st)
 
 replace    :: VihsState -> IO VihsState

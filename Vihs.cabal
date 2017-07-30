@@ -21,6 +21,7 @@ library
                      , ReadWrite
                      , Delete
                      , ParseCmd
+                     , HiddenChar.HiddenChar
   build-depends:       base >= 4.7 && < 5
                      , parsec
                      , haskeline

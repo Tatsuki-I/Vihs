@@ -4,9 +4,6 @@ module Vihs
      , vihsTestRun
      , vihsInit
      , vihsDefault
-     , stream
-     , stream'
-     , insRun
      ) where
 
 
@@ -40,12 +37,12 @@ type Column = Int
 type Count  = Int
 
 data Cmd = Move Direction Count
-         | Insert Char
-         | Delete Count
+         | Insert  Char
+         | Delete  Count
          | DelLine Count
          | Replace Count
-         | Change Mode
-         | None String
+         | Change  Mode
+         | None    String
            deriving (Show)
 
 data Direction = UP
@@ -63,7 +60,7 @@ data Mode = NORMAL
 
 data ExCmd = Write FilePath
            | Quit
-           | To Mode
+           | To     Mode
            | Term
            | Number Bool
              deriving (Show)
@@ -93,29 +90,29 @@ currline st =  buff st !! row st
 filelength    :: VihsState -> Int
 filelength st =  length (buff st)
 
-stream        :: String -> VihsState -> IO Cmd
-stream str st =  do str' <- stream' True str
-                    putStrLn ""
-                    vihsPrint False st
-                    case str' of
-                      "j"  -> return $ Move UP 1
-                      "k"  -> return $ Move DOWN 1
-                      "h"  -> return $ Move LEFT 1
-                      "l"  -> return $ Move RIGHT 1
-                      "x"  -> return $ Delete 1
-                      "r"  -> return $ Change REPLACE
-                      "R"  -> return $ Replace 1
-                      "i"  -> return $ Insert 'i'
-                      "I"  -> return $ Insert 'I'
-                      "a"  -> return $ Insert 'a'
-                      "A"  -> return $ Insert 'A'
-                      "o"  -> return $ Insert 'o'
-                      "O"  -> return $ Insert 'O'
-                      ":"  -> return $ Change EX
-                      "dd" -> return $ DelLine 1
-                      _   -> do print str'
-                                vihsPrint False st
-                                stream str' st
+parseCmd        :: String -> VihsState -> IO Cmd
+parseCmd str st =  do str' <- stream' True str
+                      putStrLn ""
+                      vihsPrint False st
+                      case str' of
+                        "j"  -> return $ Move UP    1
+                        "k"  -> return $ Move DOWN  1
+                        "h"  -> return $ Move LEFT  1
+                        "l"  -> return $ Move RIGHT 1
+                        "x"  -> return $ Delete 1
+                        "r"  -> return $ Change REPLACE
+                        "R"  -> return $ Replace 1
+                        "i"  -> return $ Insert 'i'
+                        "I"  -> return $ Insert 'I'
+                        "a"  -> return $ Insert 'a'
+                        "A"  -> return $ Insert 'A'
+                        "o"  -> return $ Insert 'o'
+                        "O"  -> return $ Insert 'O'
+                        ":"  -> return $ Change EX
+                        "dd" -> return $ DelLine 1
+                        _   -> do print str'
+                                  vihsPrint False st
+                                  parseCmd str' st
 
 switcher        :: String -> Char -> String
 switcher str ch =  case ch of
@@ -128,24 +125,6 @@ switcher str ch =  case ch of
 stream'              :: Bool -> String -> IO String
 stream' finished str =  do ch <- getChar
                            return $ switcher str ch
-
-parseCmd    :: Char -> Cmd
-parseCmd ch =  case ch of
-                 'j' -> Move UP 1
-                 'k' -> Move DOWN 1
-                 'h' -> Move LEFT 1
-                 'l' -> Move RIGHT 1
-                 'x' -> Delete 1
-                 'r' -> Replace 1
-                 'R' -> Replace 1
-                 'i' -> Insert ch
-                 'I' -> Insert ch
-                 'a' -> Insert ch
-                 'A' -> Insert ch
-                 'o' -> Insert ch
-                 'O' -> Insert ch
-                 ':' -> Change EX
-                 _   -> None [ch]
 
 parseExCmd     :: String -> ExCmd
 parseExCmd cmd =  case head (words cmd) of
@@ -175,7 +154,7 @@ vihsRun st =  do vihsPrint False st
                           REPLACE   -> replace st
 
 normalRun    :: VihsState -> IO VihsState
-normalRun st =  do cmd <- stream "" st
+normalRun st =  do cmd <- parseCmd "" st
                    normal cmd `execStateT` st >>= vihsRun
 
 normal     :: Cmd -> StateT VihsState IO ()

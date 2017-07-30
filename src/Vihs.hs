@@ -6,6 +6,7 @@ module Vihs
      , vihsDefault
      , stream
      , stream'
+     , insRun
      ) where
 
 
@@ -92,7 +93,7 @@ currline st =  buff st !! row st
 filelength    :: VihsState -> Int
 filelength st =  length (buff st)
 
-stream        :: String -> VihsState-> IO Cmd
+stream        :: String -> VihsState -> IO Cmd
 stream str st =  do str' <- stream' True str
                     putStrLn ""
                     vihsPrint False st
@@ -251,9 +252,13 @@ addLine r buff =  take (r + 1) buff ++ [""] ++ drop (r + 1) buff
 
 edit        :: String -> VihsState -> VihsState
 edit str st =  st { buff   = fst ++ str : [] ++ tail snd
-                  , column = if length str - 1 < column st
-                               then length str - 1
+                  , column = if length str < length (currline st)
+                               then if length str - 1 < column st
+                                 then length str - 1
+                                 else column st
                                else column st
+                                    + length str
+                                    - length (currline st)
                   , saved  = False }
                where (fst, snd) = splitAt (row st) (buff st)
 
@@ -285,34 +290,68 @@ replace' c buff =  do putStr "REPLACE>> "
                       return $ fst ++ [ch] ++ tail snd
                       where (fst, snd) = splitAt c buff
 
+insRun    :: VihsState -> IO VihsState
+insRun st =  do vihsPrint True st
+                ch <- getChar
+                putStrLn ""
+                case ch of
+                  '\ESC' -> return st { buff = fstb
+                                               ++ (if last (currline st)
+                                                      == '\n'
+                                                     then (++ [""])
+                                                     else (++ []))
+                                               (lines (currline st))
+                                               ++ tail sndb
+                                      , row = (if last (currline st)
+                                                  == '\n'
+                                                 then id
+                                                 else subtract 
+                                                        (if head (currline st)
+                                                            == '\n'
+                                                           then 2
+                                                           else 1))
+                                              (row st
+                                              + length (lines $ currline st))
+                                      , column = column st
+                                                 - (length 
+                                                    . unlines
+                                                    . init
+                                                    . lines $ currline st) }
+                  '\DEL' -> do print ch
+                               insRun $ if null fst
+                                          then st
+                                          else edit (init fst ++ snd)
+                                                   st { column = column st - 1 }
+                  _      -> do print ch
+                               insRun $ edit (fst ++ [ch] ++ snd) st
+                where (fst,  snd)  = splitAt (column st) (currline st)
+                      (fstb, sndb) = splitAt (row st)    (buff st)
+
 insert       :: Char -> VihsState -> IO VihsState
 insert ch st =  do vihsPrint True st'
-                   str' <- maybe ""
-                                 (\str -> insert' (column st')
-                                                  str
-                                                  (currline st'))
-                                 <$> runInputT defaultSettings
-                                               (getInputLine "\nINSERT>> ")
-                   return $ edit str' $ to NORMAL st'
-                   where st' = case ch of
+                   st'' <- insRun st'
+                   return $ to NORMAL st''
+                   where (fstb, sndb) = splitAt (row st) (buff st)
+                         st' = case ch of
                                  'i' -> st
                                  'a' -> st { column = column st + 1 }
                                  'I' -> st { column = 0 }
                                  'A' -> st { column = length $ currline st }
-                                 'o' -> st { row    = row st + 1
-                                           , column = 0 
-                                           , buff   = addLine (row st) (buff st) }
+                                 'o' -> st { row    = row st
+                                           , column = length (currline st) + 1
+                                           , buff   = fstb 
+                                                      ++ [currline st ++ "\n"]
+                                                      ++  tail sndb }
                                  'O' -> st { row    = row st
-                                           , column = 0 
-                                           , buff   = addLine (row st - 1) (buff st) }
-        {- insert st =  do str <- fromMaybe "" 
-                    <$> (runInputT defaultSettings $ getInputLine "\n> ")
-                return $ edit (insert' (column st) str (currline st)) st
--}
+                                           , column = 0
+                                           , buff   = fstb
+                                                      ++ ["\n" ++ currline st]
+                                                      ++ tail sndb }
+                                               --addLine (row st - 1) (buff st) }
 
-insert'            :: Column -> String -> String -> String
-insert' c str buff =  fst ++ str ++ snd-- ++ drop c buff
-                      where (fst, snd) = splitAt c buff
+insert'            :: Column -> Line -> Line -> Line
+insert' c str line =  fst ++ str ++ snd-- ++ drop c line
+                      where (fst, snd) = splitAt c line
 
 quit    :: VihsState -> VihsState
 quit st =  st { quited = True }

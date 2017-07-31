@@ -137,11 +137,11 @@ stream' finished str =  do ch <- getHiddenChar
 
 parseExCmd     :: String -> ExCmd
 parseExCmd cmd =  case head (words cmd) of
-                    ch | ch == "w"
-                       , ch == "write"
+                    cmd | cmd == "w"
+                        , cmd == "write"
                                -> Write $ words cmd !! 1
-                    ch | ch == "q"
-                       , ch == "quit"
+                    cmd | cmd == "q"
+                        , cmd == "quit"
                                -> Quit
                     "set"      -> Number $ case words cmd !! 1 of
                                              "number"   -> True

@@ -25,11 +25,10 @@ data FileState = FileState { path   :: FilePath
                            , saved  :: Bool
                            } deriving (Show)
 
-type EditorState = (VihsState, FileState)
-
 newtype Cursor = Cursor (Int, Int)
                  deriving (Show)
 
+type EditorState = (VihsState, FileState)
 type Line   = String
 type Text   = [Line]
 type Row    = Int
@@ -59,7 +58,7 @@ data Mode = NORMAL
           | REPLACE
             deriving (Show)
 
-data ExCmd = Write FilePath
+data ExCmd = Write  FilePath
            | Quit
            | To     Mode
            | Term
@@ -119,9 +118,9 @@ parseCmd str st =  do str' <- stream' True str
                         "O"  -> return $ Insert 'O'
                         ":"  -> return $ Change EX
                         "dd" -> return $ DelLine 1
-                        _   -> do print str'
-                                  vihsPrint False st
-                                  parseCmd str' st
+                        _    -> do print str'
+                                   vihsPrint False st
+                                   parseCmd str' st
 
 switcher        :: String -> Char -> String
 switcher str ch =  case ch of

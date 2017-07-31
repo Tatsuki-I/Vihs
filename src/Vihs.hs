@@ -85,7 +85,7 @@ editorInit       :: VihsState -> FileState -> EditorState
 editorInit vs fs =  (vs, fs)
 
 vihsDefault :: EditorState
-vihsDefault =  (vihsInit ,fileInit "vihstest.txt" 
+vihsDefault =  (vihsInit, fileInit "vihstest.txt" 
                                    [ "Hello Vihs!"
                                    , "I'm 2nd line" 
                                    , "I'm 3rd line"])
@@ -137,18 +137,21 @@ stream' finished str =  do ch <- getHiddenChar
 
 parseExCmd     :: String -> ExCmd
 parseExCmd cmd =  case head (words cmd) of
-                    "w"        -> Write $ words cmd !! 1
-                    "write"    -> Write $ words cmd !! 1
-                    "q"        -> Quit
-                    "quit"     -> Quit
+                    ch | ch == "w"
+                       , ch == "write"
+                               -> Write $ words cmd !! 1
+                    ch | ch == "q"
+                       , ch == "quit"
+                               -> Quit
                     "set"      -> Number $ case words cmd !! 1 of
                                              "number"   -> True
                                              "nonumber" -> False
                     "terminal" -> Term
                     "git"      -> Git . unwords . drop 1 $ words cmd
                     "stack"    -> Stack . unwords . drop 1 $ words cmd
-                    "BS"       -> To NORMAL
-                    "\b"       -> To NORMAL
+                    ch | ch == "BS"
+                       , ch == "\b"
+                               -> To NORMAL
                     _          -> undefined
  
 loopM     :: (Monad m) => (a -> m a) -> a -> m a

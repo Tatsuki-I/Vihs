@@ -360,7 +360,7 @@ insert ch st@(vs, fs) =  do vihsPrint True st'
                                                      , column = 0
                                                      , buff   = fstb
                                                                 ++ ["\n" ++ currline fs]
-                                                               ++ tail sndb })
+                                                                ++ tail sndb })
 
 insert'            :: Column -> Line -> Line -> Line
 insert' c str line =  fst ++ str ++ snd-- ++ drop c line

@@ -202,23 +202,26 @@ ex cmd =  case cmd of
 
 move                :: (Row -> Row) -> (Column -> Column) ->
                        EditorState -> EditorState
-move f1 f2 
-     (vs, fs) =  (vs ,fs { row    = newRow $ row fs
-                         , column = newColumn })
-                 where newRow    :: (Row -> Row)
-                       newRow    |  (f1 (row fs) <  0)
-                                 || (f1 (row fs) >= filelength fs)
-                                              = id
-                                 |  otherwise = f1
-                       newColumn |  (f2 (column fs) < 0)
-                                 || (f2 (column fs) >= length (currline fs))
-                                 || (f1 (row fs) < 0)
-                                 || (f1 (row fs) >= filelength fs)
-                                              = column fs
-                                 |  length (buff fs !! f1 (row fs)) < length (currline fs)
-                                 && length (buff fs !! f1 (row fs)) <= column fs
-                                              = length (buff fs !! f1 (row fs)) - 1
-                                 |  otherwise = f2 $ column fs
+move f1 f2 (vs, fs) =  (vs ,fs { row    = newRow $ row fs
+                               , column = newColumn })
+                       where newRow    :: (Row -> Row)
+                             newRow    |  (f1 (row fs) <  0)
+                                       || (f1 (row fs) >= filelength fs)
+                                                    = id
+                                       |  otherwise = f1
+                             newColumn |  (f2 (column fs) < 0)
+                                       || (f2 (column fs)
+                                          >= length (currline fs))
+                                       || (f1 (row fs) < 0)
+                                       || (f1 (row fs)
+                                          >= filelength fs)
+                                                    = column fs
+                                       |  length (buff fs !! f1 (row fs))
+                                          <  length (currline fs)
+                                       && length (buff fs !! f1 (row fs))
+                                          <= column fs
+                                                    = length (buff fs !! f1 (row fs)) - 1
+                                       |  otherwise = f2 $ column fs
 
 vihsPrint             :: Bool -> EditorState -> IO ()
 vihsPrint isIns

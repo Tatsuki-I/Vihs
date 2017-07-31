@@ -228,21 +228,21 @@ vihsPrint isIns
                                 then zipWith (++)
                                              (map ((++"\t") . show)
                                              [1 ..])
-                                else id) (fst ++ [putCursor isIns st]
+                                else id) (fst ++ [putCursor isIns fs]
                                               ++ tail snd))
                             where (fst, snd) = splitAt (row fs) (buff fs)
 
-putCursor               :: Bool -> EditorState -> String
-putCursor isIns (_, fs) =  fst ++ (if isIns
-                                     then '|'
-                                     else '[') 
-                           : (if null snd 
-                                then [']']
-                                else head snd : (if isIns
-                                                   then []
-                                                   else [']'])
-                                ++ tail snd)
-                           where (fst, snd) = splitAt (column fs) (currline fs)
+putCursor          :: Bool -> FileState -> String
+putCursor isIns fs =  fst ++ (if isIns
+                                then '|'
+                                else '[') 
+                      : (if null snd 
+                           then [']']
+                           else head snd : (if isIns
+                                              then []
+                                              else [']'])
+                           ++ tail snd)
+                      where (fst, snd) = splitAt (column fs) (currline fs)
 
 addLine        :: Row -> Text -> Text
 addLine r buff =  take (r + 1) buff ++ [""] ++ drop (r + 1) buff

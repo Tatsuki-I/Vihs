@@ -247,24 +247,23 @@ putCursor isIns (_, fs) =  fst ++ (if isIns
 addLine        :: Row -> Text -> Text
 addLine r buff =  take (r + 1) buff ++ [""] ++ drop (r + 1) buff
 
-edit                 :: String -> EditorState -> EditorState
-edit str
-     st@(vs, fs) =  (vs, fs { buff   = fst ++ str : [] ++ tail snd
-                            , column = newColumn
-                            , saved  = False })
-                    where (fst, snd) = splitAt (row fs) (buff fs)
-                          newColumn :: Int
-                          newColumn |  length str
-                                       < length (currline fs) 
-                                    && length str - 1
-                                       < column fs
-                                                 = length str - 1
-                                    |  length str
-                                       < length (currline fs)
-                                                 = column fs
-                                    |  otherwise = column fs
-                                                   + length str
-                                                   - length (currline fs)
+edit              :: String -> EditorState -> EditorState
+edit str (vs, fs) =  (vs, fs { buff   = fst ++ str : [] ++ tail snd
+                             , column = newColumn
+                             , saved  = False })
+                     where (fst, snd) = splitAt (row fs) (buff fs)
+                           newColumn :: Int
+                           newColumn |  length str
+                                        < length (currline fs) 
+                                     && length str - 1
+                                        < column fs
+                                                  = length str - 1
+                                     |  length str
+                                        < length (currline fs)
+                                                  = column fs
+                                     |  otherwise = column fs
+                                                    + length str
+                                                    - length (currline fs)
 
 delete               :: Count -> EditorState -> EditorState
 delete c st@(vs, fs) =  f (vs ,fs { yanked = take c snd })

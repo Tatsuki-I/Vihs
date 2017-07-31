@@ -203,22 +203,23 @@ ex cmd =  case cmd of
 move                :: (Row -> Row) -> (Column -> Column) ->
                        EditorState -> EditorState
 move f1 f2 
-     (vs, fs) =  (vs
-                 ,fs { row    = (if (f1 (row fs) <  0)
+     (vs, fs) =  (vs ,fs { row    = newRow
+                         , column = newColumn })
+                 where newRow = (if (f1 (row fs) <  0)
                                  || (f1 (row fs) >= filelength fs)
                                    then id
                                    else f1) $ row fs
-                     , column = if (f2 (column fs) <  0)
-                                || (f2 (column fs) >= length (currline fs))
-                                || (f1 (row fs)    <  0)
-                                || (f1 (row fs)    >= filelength fs)
-                                  then column fs 
-                                  else if length (buff fs !! f1 (row fs)) 
-                                          <  length (currline fs)
-                                       && length (buff fs !! f1 (row fs))
-                                          <= column fs
-                                         then length (buff fs !! f1 (row fs)) - 1
-                                         else f2 $ column fs })
+                       newColumn = if (f2 (column fs) <  0)
+                                   || (f2 (column fs) >= length (currline fs))
+                                   || (f1 (row fs)    <  0)
+                                   || (f1 (row fs)    >= filelength fs)
+                                     then column fs 
+                                     else if length (buff fs !! f1 (row fs)) 
+                                             <  length (currline fs)
+                                          && length (buff fs !! f1 (row fs))
+                                             <= column fs
+                                            then length (buff fs !! f1 (row fs)) - 1
+                                            else f2 $ column fs
 
 vihsPrint             :: Bool -> EditorState -> IO ()
 vihsPrint isIns
@@ -250,15 +251,21 @@ addLine r buff =  take (r + 1) buff ++ [""] ++ drop (r + 1) buff
 edit                 :: String -> EditorState -> EditorState
 edit str
      st@(vs, fs) =  (vs, fs { buff   = fst ++ str : [] ++ tail snd
-                            , column = if length str < length (currline fs)
-                                         then if length str - 1 < column fs
-                                           then length str - 1
-                                           else column fs
-                                         else column fs
-                                              + length str
-                                              - length (currline fs)
+                            , column = newColumn st
                             , saved  = False })
                     where (fst, snd) = splitAt (row fs) (buff fs)
+                          newColumn :: EditorState -> Int
+                          newColumn st@(vs, fs) | length str
+                                                     < length (currline fs) 
+                                                  && length str - 1
+                                                     < column fs
+                                                            = length str - 1
+                                                | length str
+                                                     < length (currline fs)
+                                                            = column fs
+                                                | otherwise = column fs
+                                                              + length str
+                                                              - length (currline fs)
 
 delete               :: Count -> EditorState -> EditorState
 delete c

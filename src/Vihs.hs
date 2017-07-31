@@ -228,43 +228,42 @@ vihsPrint isIns
                                 then zipWith (++)
                                              (map ((++"\t") . show)
                                              [1 ..])
-                                else id) (fst ++ [putCursor isIns st]
+                                else id) (fst ++ [putCursor isIns fs]
                                               ++ tail snd))
                             where (fst, snd) = splitAt (row fs) (buff fs)
 
-putCursor               :: Bool -> EditorState -> String
-putCursor isIns (_, fs) =  fst ++ (if isIns
-                                     then '|'
-                                     else '[') 
-                           : (if null snd 
-                                then [']']
-                                else head snd : (if isIns
-                                                   then []
-                                                   else [']'])
-                                ++ tail snd)
-                           where (fst, snd) = splitAt (column fs) (currline fs)
+putCursor          :: Bool -> FileState -> String
+putCursor isIns fs =  fst ++ (if isIns
+                                then '|'
+                                else '[') 
+                      : (if null snd 
+                           then [']']
+                           else head snd : (if isIns
+                                              then []
+                                              else [']'])
+                           ++ tail snd)
+                      where (fst, snd) = splitAt (column fs) (currline fs)
 
 addLine        :: Row -> Text -> Text
 addLine r buff =  take (r + 1) buff ++ [""] ++ drop (r + 1) buff
 
-edit                 :: String -> EditorState -> EditorState
-edit str
-     st@(vs, fs) =  (vs, fs { buff   = fst ++ str : [] ++ tail snd
-                            , column = newColumn
-                            , saved  = False })
-                    where (fst, snd) = splitAt (row fs) (buff fs)
-                          newColumn :: Int
-                          newColumn |  length str
-                                       < length (currline fs) 
-                                    && length str - 1
-                                       < column fs
-                                                 = length str - 1
-                                    |  length str
-                                       < length (currline fs)
-                                                 = column fs
-                                    |  otherwise = column fs
-                                                   + length str
-                                                   - length (currline fs)
+edit              :: String -> EditorState -> EditorState
+edit str (vs, fs) =  (vs, fs { buff   = fst ++ str : [] ++ tail snd
+                             , column = newColumn
+                             , saved  = False })
+                     where (fst, snd) = splitAt (row fs) (buff fs)
+                           newColumn :: Int
+                           newColumn |  length str
+                                        < length (currline fs) 
+                                     && length str - 1
+                                        < column fs
+                                                  = length str - 1
+                                     |  length str
+                                        < length (currline fs)
+                                                  = column fs
+                                     |  otherwise = column fs
+                                                    + length str
+                                                    - length (currline fs)
 
 delete               :: Count -> EditorState -> EditorState
 delete c st@(vs, fs) =  f (vs ,fs { yanked = take c snd })
@@ -274,23 +273,23 @@ delete c st@(vs, fs) =  f (vs ,fs { yanked = take c snd })
                                              = id
                                 |  otherwise = edit $ fst ++ drop c snd
 
-delLine               :: Count -> EditorState -> EditorState
-delLine c st@(vs, fs) =  newSt
-                         where (fst, snd) = splitAt (row fs) (buff fs)
-                               newSt :: EditorState
-                               newSt |  length (buff fs) <= 1
-                                                  = (vs, fs { buff = [""] })
-                                     |  length (buff fs) - 1 < row fs
-                                                  = (vs, fs { buff   = fst ++ drop c snd 
-                                                            , row    = length (buff fs) - 1
-                                                            , yanked = unlines $ take c snd})
-                                     |  otherwise = (vs, fs { buff   = fst ++ drop c snd 
-                                                            , row    = row fs
-                                                            , yanked = unlines $ take c snd})
+delLine            :: Count -> EditorState -> EditorState
+delLine c (vs, fs) =  newSt
+                      where (fst, snd) = splitAt (row fs) (buff fs)
+                            newSt :: EditorState
+                            newSt |  length (buff fs) <= 1
+                                               = (vs, fs { buff = [""] })
+                                  |  length (buff fs) - 1 < row fs
+                                               = (vs, fs { buff   = fst ++ drop c snd 
+                                                         , row    = length (buff fs) - 1
+                                                         , yanked = unlines $ take c snd})
+                                  |  otherwise = (vs, fs { buff   = fst ++ drop c snd 
+                                                         , row    = row fs
+                                                         , yanked = unlines $ take c snd})
 
-replace             :: EditorState -> IO EditorState
-replace st@(vs, fs) =  do str <- replace' (column fs) (currline fs)
-                          (vihsRun . edit str) (to NORMAL st)
+replace            :: EditorState -> IO EditorState
+replace st@(_, fs) =  do str <- replace' (column fs) (currline fs)
+                         (vihsRun . edit str) (to NORMAL st)
 
 replace'        :: Column -> String -> IO String
 replace' c buff =  do putStr "REPLACE>> "
@@ -338,31 +337,31 @@ insRun st@(vs, fs) =  do vihsPrint True st
                                                           . init
                                                           . lines $ currline fs) })
 
-insert                :: Char -> EditorState -> IO EditorState
-insert ch st@(vs, fs) =  do vihsPrint True st'
-                            st'' <- insRun st'
-                            return $ to NORMAL st''
-                            where (fstb, sndb) = splitAt (row fs) (buff fs)
-                                  st' = case ch of
-                                          'i' -> st
-                                          'a' -> (vs
-                                                 ,fs { column = column fs + 1 })
-                                          'I' -> (vs
-                                                 ,fs { column = 0 })
-                                          'A' -> (vs
-                                                 ,fs { column = length $ currline fs })
-                                          'o' -> (vs
-                                                 ,fs { row    = row fs
-                                                     , column = length (currline fs) + 1
-                                                     , buff   = fstb
-                                                                ++ [currline fs ++ "\n"]
-                                                                ++  tail sndb })
-                                          'O' -> (vs
-                                                 ,fs { row    = row fs
-                                                     , column = 0
-                                                     , buff   = fstb
-                                                                ++ ["\n" ++ currline fs]
-                                                                ++ tail sndb })
+insert             :: Char -> EditorState -> IO EditorState
+insert ch (vs, fs) =  do vihsPrint True st'
+                         st'' <- insRun st'
+                         return $ to NORMAL st''
+                         where (fstb, sndb) = splitAt (row fs) (buff fs)
+                               st' = case ch of
+                                       'i' -> (vs, fs)
+                                       'a' -> (vs
+                                              ,fs { column = column fs + 1 })
+                                       'I' -> (vs
+                                              ,fs { column = 0 })
+                                       'A' -> (vs
+                                              ,fs { column = length $ currline fs })
+                                       'o' -> (vs
+                                              ,fs { row    = row fs
+                                                  , column = length (currline fs) + 1
+                                                  , buff   = fstb
+                                                             ++ [currline fs ++ "\n"]
+                                                             ++  tail sndb })
+                                       'O' -> (vs
+                                              ,fs { row    = row fs
+                                                  , column = 0
+                                                  , buff   = fstb
+                                                             ++ ["\n" ++ currline fs]
+                                                             ++ tail sndb })
 
 insert'            :: Column -> Line -> Line -> Line
 insert' c str line =  fst ++ str ++ snd

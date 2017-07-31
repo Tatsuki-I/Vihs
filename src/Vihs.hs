@@ -203,23 +203,22 @@ ex cmd =  case cmd of
 move                :: (Row -> Row) -> (Column -> Column) ->
                        EditorState -> EditorState
 move f1 f2 
-     (vs, fs) =  (vs ,fs { row    = newRow
+     (vs, fs) =  (vs ,fs { row    = newRow $ row fs
                          , column = newColumn })
-                 where newRow = (if (f1 (row fs) <  0)
+                 where newRow    :: (Row -> Row)
+                       newRow    |  (f1 (row fs) <  0)
                                  || (f1 (row fs) >= filelength fs)
-                                   then id
-                                   else f1) $ row fs
-                       newColumn = if (f2 (column fs) <  0)
-                                   || (f2 (column fs) >= length (currline fs))
-                                   || (f1 (row fs)    <  0)
-                                   || (f1 (row fs)    >= filelength fs)
-                                     then column fs 
-                                     else if length (buff fs !! f1 (row fs)) 
-                                             <  length (currline fs)
-                                          && length (buff fs !! f1 (row fs))
-                                             <= column fs
-                                            then length (buff fs !! f1 (row fs)) - 1
-                                            else f2 $ column fs
+                                              = id
+                                 |  otherwise = f1
+                       newColumn |  (f2 (column fs) < 0)
+                                 || (f2 (column fs) >= length (currline fs))
+                                 || (f1 (row fs) < 0)
+                                 || (f1 (row fs) >= filelength fs)
+                                              = column fs
+                                 |  length (buff fs !! f1 (row fs)) < length (currline fs)
+                                 && length (buff fs !! f1 (row fs)) <= column fs
+                                              = length (buff fs !! f1 (row fs)) - 1
+                                 |  otherwise = f2 $ column fs
 
 vihsPrint             :: Bool -> EditorState -> IO ()
 vihsPrint isIns
@@ -254,18 +253,18 @@ edit str
                             , column = newColumn st
                             , saved  = False })
                     where (fst, snd) = splitAt (row fs) (buff fs)
-                          newColumn :: EditorState -> Int
-                          newColumn st@(vs, fs) | length str
-                                                     < length (currline fs) 
-                                                  && length str - 1
-                                                     < column fs
-                                                            = length str - 1
-                                                | length str
-                                                     < length (currline fs)
-                                                            = column fs
-                                                | otherwise = column fs
-                                                              + length str
-                                                              - length (currline fs)
+                          newColumn             :: EditorState -> Int
+                          newColumn st@(vs, fs) |  length str
+                                                   < length (currline fs) 
+                                                && length str - 1
+                                                   < column fs
+                                                             = length str - 1
+                                                |  length str
+                                                   < length (currline fs)
+                                                             = column fs
+                                                |  otherwise = column fs
+                                                               + length str
+                                                               - length (currline fs)
 
 delete               :: Count -> EditorState -> EditorState
 delete c

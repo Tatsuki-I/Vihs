@@ -120,7 +120,6 @@ parseCmd str st =  do str' <- stream' str
                         _    -> do print str'
                                    vihsPrint False st
                                    parseCmd str' st
---                      where (c, cmd) = parseCmd' str'
 
 switcher        :: String -> Char -> String
 switcher str ch =  case ch of
@@ -203,8 +202,7 @@ move                :: (Row -> Row) -> (Column -> Column) ->
 move f1 f2 (vs, fs) =  (vs ,fs { row    = newRow
                                , column = newColumn })
                        where newRow    :: Row
-                             newRow    |  (f1 (row fs)
-                                          <  0)             = 0
+                             newRow    |  (f1 (row fs) < 0) = 0
                                        |  (f1 (row fs) 
                                           >= filelength fs) = filelength fs - 1
                                        |  otherwise         = f1 $ row fs

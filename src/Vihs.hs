@@ -11,6 +11,7 @@ import System.Console.Haskeline
 import Data.Maybe
 import System.Process
 import HiddenChar.HiddenChar
+import CmdParser
 
 data VihsState = VihsState { mode   :: Mode
                            , quited :: Bool
@@ -42,8 +43,8 @@ data Cmd = Move Direction Count
          | None    String
            deriving (Show)
 
-data Direction = UP
-               | DOWN
+data Direction = DOWN
+               | UP
                | LEFT
                | RIGHT
                  deriving (Show)
@@ -96,15 +97,16 @@ filelength    :: FileState -> Int
 filelength fs =  length (buff fs)
 
 parseCmd        :: String -> EditorState -> IO Cmd
-parseCmd str st =  do str' <- stream' True str
+parseCmd str st =  do str' <- stream' str
+                      let (c, cmd) = parseCmd' str'
                       putStrLn ""
-                      vihsPrint False st
-                      case str' of
-                        "j"  -> return $ Move UP    1
-                        "k"  -> return $ Move DOWN  1
-                        "h"  -> return $ Move LEFT  1
-                        "l"  -> return $ Move RIGHT 1
-                        "x"  -> return $ Delete 1
+                      print $ parseCmd' str'
+                      case cmd of
+                        "j"  -> return $ Move DOWN  (fromMaybe 1 $ c)
+                        "k"  -> return $ Move UP    (fromMaybe 1 $ c)
+                        "h"  -> return $ Move LEFT  (fromMaybe 1 $ c)
+                        "l"  -> return $ Move RIGHT (fromMaybe 1 $ c)
+                        "x"  -> return $ Delete (fromMaybe 1 $ c)
                         "r"  -> return $ Change REPLACE
                         "R"  -> return $ Replace 1
                         "i"  -> return $ Insert 'i'
@@ -114,10 +116,11 @@ parseCmd str st =  do str' <- stream' True str
                         "o"  -> return $ Insert 'o'
                         "O"  -> return $ Insert 'O'
                         ":"  -> return $ Change EX
-                        "dd" -> return $ DelLine 1
+                        "dd" -> return $ DelLine (fromMaybe 1 $ c)
                         _    -> do print str'
                                    vihsPrint False st
                                    parseCmd str' st
+--                      where (c, cmd) = parseCmd' str'
 
 switcher        :: String -> Char -> String
 switcher str ch =  case ch of
@@ -127,9 +130,9 @@ switcher str ch =  case ch of
                      '\ESC' -> ""
                      _      -> str ++ [ch]
 
-stream'              :: Bool -> String -> IO String
-stream' finished str =  do ch <- getHiddenChar
-                           return $ switcher str ch
+stream'     :: String -> IO String
+stream' str =  do ch <- getHiddenChar
+                  return $ switcher str ch
 
 parseExCmd     :: String -> ExCmd
 parseExCmd cmd =  case head (words cmd) of
@@ -150,29 +153,27 @@ parseExCmd cmd =  case head (words cmd) of
                                -> To NORMAL
                     _          -> undefined
  
-loopM     :: (Monad m) => (a -> m a) -> a -> m a
-loopM f a =  loopM f =<< f a
-
-vihsRun             :: EditorState -> IO EditorState
-vihsRun st@(vs, fs) =  do vihsPrint False st
-                          if quited vs
-                            then return st
-                            else case mode vs of
-                                   NORMAL    -> normalRun st
-                                   EX        -> exRun     st
-                                   INSERT ch -> insert ch st
-                                   REPLACE   -> replace st
+vihsRun            :: EditorState -> IO EditorState
+vihsRun st@(vs, _) =  do vihsPrint False st
+                         if quited vs
+                           then return st
+                           else case mode vs of
+                                  NORMAL    -> normalRun st
+                                  EX        -> exRun     st
+                                  INSERT ch -> insert ch st
+                                  REPLACE   -> replace st
 
 normalRun    :: EditorState -> IO EditorState
 normalRun st =  do cmd <- parseCmd "" st
+                   print cmd
                    normal cmd `execStateT` st >>= vihsRun
 
 normal     :: Cmd -> StateT EditorState IO ()
 normal cmd =  case cmd of
-                Move UP    _ -> modify $ move (+        1) id
-                Move DOWN  _ -> modify $ move (subtract 1) id
-                Move LEFT  _ -> modify $ move id           (subtract 1)
-                Move RIGHT _ -> modify $ move id           (+        1)
+                Move DOWN  c -> modify $ move (+        c) id
+                Move UP    c -> modify $ move (subtract c) id
+                Move LEFT  c -> modify $ move id           (subtract c)
+                Move RIGHT c -> modify $ move id           (+        c)
                 Delete     c -> modify $ delete  c
                 DelLine    c -> modify $ delLine c
                 Insert ch    -> get >>= (lift . insert ch) >>= put
@@ -199,13 +200,14 @@ ex cmd =  case cmd of
 
 move                :: (Row -> Row) -> (Column -> Column) ->
                        EditorState -> EditorState
-move f1 f2 (vs, fs) =  (vs ,fs { row    = newRow $ row fs
+move f1 f2 (vs, fs) =  (vs ,fs { row    = newRow
                                , column = newColumn })
-                       where newRow    :: (Row -> Row)
-                             newRow    |  (f1 (row fs) <  0)
-                                       || (f1 (row fs) >= filelength fs)
-                                                    = id
-                                       |  otherwise = f1
+                       where newRow    :: Row
+                             newRow    |  (f1 (row fs)
+                                          <  0)             = 0
+                                       |  (f1 (row fs) 
+                                          >= filelength fs) = filelength fs - 1
+                                       |  otherwise         = f1 $ row fs
                              newColumn |  (f2 (column fs) < 0)
                                        || (f2 (column fs)
                                           >= length (currline fs))

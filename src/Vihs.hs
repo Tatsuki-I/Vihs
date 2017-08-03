@@ -154,9 +154,9 @@ parseExCmd cmd =  case head (words cmd) of
  
 vihsRun            :: EditorState -> IO EditorState
 vihsRun st@(vs, _) =  do vihsPrint False st
-                         if quited vs
+                         if _quited vs
                            then return st
-                           else case mode vs of
+                           else case _mode vs of
                                   NORMAL    -> normalRun st
                                   EX        -> exRun     st
                                   INSERT ch -> insert ch st
@@ -202,29 +202,29 @@ move                :: (Row -> Row) -> (Column -> Column) ->
 move f1 f2 (vs, fs) =  (vs ,fs { _row    = newRow
                                , _column = newColumn })
                        where newRow    :: Row
-                             newRow    |  (f1 (row fs) < 0) = 0
-                                       |  (f1 (row fs) 
+                             newRow    |  (f1 (_row fs) < 0) = 0
+                                       |  (f1 (_row fs) 
                                           >= filelength fs) = filelength fs - 1
-                                       |  otherwise         = f1 $ row fs
-                             newColumn |  (f2 (column fs) < 0)
-                                       || (f2 (column fs)
+                                       |  otherwise         = f1 $ _row fs
+                             newColumn |  (f2 (_column fs) < 0)
+                                       || (f2 (_column fs)
                                           >= length (currline fs))
-                                       || (f1 (row fs) < 0)
-                                       || (f1 (row fs)
+                                       || (f1 (_row fs) < 0)
+                                       || (f1 (_row fs)
                                           >= filelength fs)
-                                                    = column fs
-                                       |  length (buff fs !! f1 (row fs))
+                                                    = _column fs
+                                       |  length (_buff fs !! f1 (_row fs))
                                           <  length (currline fs)
-                                       && length (buff fs !! f1 (row fs))
-                                          <= column fs
-                                                    = length (buff fs !! f1 (row fs)) - 1
-                                       |  otherwise = f2 $ column fs
+                                       && length (_buff fs !! f1 (_row fs))
+                                          <= _column fs
+                                                    = length (_buff fs !! f1 (_row fs)) - 1
+                                       |  otherwise = f2 $ _column fs
 
 vihsPrint             :: Bool -> EditorState -> IO ()
 vihsPrint isIns
           st@(vs, fs) =  do print st
                             (putStrLn . unlines) ((
-                              if number vs
+                              if _number vs
                                 then zipWith (++)
                                              (map ((++"\t") . show)
                                              [1 ..])

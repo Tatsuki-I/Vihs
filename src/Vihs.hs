@@ -230,7 +230,7 @@ vihsPrint isIns
                                              [1 ..])
                                 else id) (fst ++ [putCursor isIns fs]
                                               ++ tail snd))
-                            where (fst, snd) = splitAt (row fs) (buff fs)
+                            where (fst, snd) = splitAt (_row fs) (_buff fs)
 
 putCursor          :: Bool -> FileState -> String
 putCursor isIns fs =  fst ++ (if isIns
@@ -242,7 +242,7 @@ putCursor isIns fs =  fst ++ (if isIns
                                               then []
                                               else [']'])
                            ++ tail snd)
-                      where (fst, snd) = splitAt (column fs) (currline fs)
+                      where (fst, snd) = splitAt (_column fs) (currline fs)
 
 addLine        :: Row -> Text -> Text
 addLine r buff =  take (r + 1) buff ++ [""] ++ drop (r + 1) buff
@@ -251,23 +251,23 @@ edit              :: String -> EditorState -> EditorState
 edit str (vs, fs) =  (vs, fs { _buff   = fst ++ str : [] ++ tail snd
                              , _column = newColumn
                              , _saved  = False })
-                     where (fst, snd) = splitAt (row fs) (buff fs)
+                     where (fst, snd) = splitAt (_row fs) (_buff fs)
                            newColumn :: Int
                            newColumn |  length str
                                         < length (currline fs) 
                                      && length str - 1
-                                        < column fs
+                                        < _column fs
                                                   = length str - 1
                                      |  length str
                                         < length (currline fs)
-                                                  = column fs
-                                     |  otherwise = column fs
+                                                  = _column fs
+                                     |  otherwise = _column fs
                                                     + length str
                                                     - length (currline fs)
 
 delete               :: Count -> EditorState -> EditorState
 delete c st@(vs, fs) =  f (vs ,fs { _yanked = take c snd })
-                        where (fst, snd) = splitAt (column fs) (currline fs)
+                        where (fst, snd) = splitAt (_column fs) (currline fs)
                               f :: (EditorState -> EditorState)
                               f |  (null . currline) fs
                                              = id
@@ -275,16 +275,16 @@ delete c st@(vs, fs) =  f (vs ,fs { _yanked = take c snd })
 
 delLine            :: Count -> EditorState -> EditorState
 delLine c (vs, fs) =  newSt
-                      where (fst, snd) = splitAt (row fs) (buff fs)
+                      where (fst, snd) = splitAt (_row fs) (_buff fs)
                             newSt :: EditorState
-                            newSt |  length (buff fs) <= 1
+                            newSt |  length (_buff fs) <= 1
                                                = (vs, fs { _buff = [""] })
-                                  |  length (buff fs) - 1 < row fs
+                                  |  length (_buff fs) - 1 < _row fs
                                                = (vs, fs { _buff   = fst ++ drop c snd 
-                                                         , _row    = length (buff fs) - 1
+                                                         , _row    = length (_buff fs) - 1
                                                          , _yanked = unlines $ take c snd})
                                   |  otherwise = (vs, fs { _buff   = fst ++ drop c snd 
-                                                         , _row    = row fs
+                                                         , _row    = _row fs
                                                          , _yanked = unlines $ take c snd})
 
 replace            :: EditorState -> IO EditorState

@@ -69,7 +69,7 @@ extra-package-dbs: []
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
-#compiler: ghc-8.2.1
+compiler: ghc-8.2.1
 compiler-check: match-exact
 
 allow-newer: true

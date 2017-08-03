@@ -91,10 +91,10 @@ vihsTestRun :: IO EditorState
 vihsTestRun =  vihsRun vihsDefault
 
 currline    :: FileState -> Line
-currline fs =  buff fs !! row fs
+currline fs =  _buff fs !! _row fs
 
 filelength    :: FileState -> Int
-filelength fs =  length (buff fs)
+filelength fs =  length (_buff fs)
 
 parseCmd        :: String -> EditorState -> IO Cmd
 parseCmd str st =  do str' <- stream' str
@@ -288,7 +288,7 @@ delLine c (vs, fs) =  newSt
                                                          , _yanked = unlines $ take c snd})
 
 replace            :: EditorState -> IO EditorState
-replace st@(_, fs) =  do str <- replace' (column fs) (currline fs)
+replace st@(_, fs) =  do str <- replace' (_column fs) (currline fs)
                          (vihsRun . edit str) (to NORMAL st)
 
 replace'        :: Column -> String -> IO String
@@ -309,11 +309,11 @@ insRun st@(vs, fs) =  do vihsPrint True st
                                         insRun $ if null fst
                                                    then st
                                                    else edit (init fst ++ snd)
-                                                             (vs, fs { _column = column fs - 1 })
+                                                             (vs, fs { _column = _column fs - 1 })
                            _      -> do print ch
                                         insRun $ edit (fst ++ [ch] ++ snd) st
-                         where (fst,  snd)  = splitAt (column fs) (currline fs)
-                               (fstb, sndb) = splitAt (row fs)    (buff fs)
+                         where (fst,  snd)  = splitAt (_column fs) (currline fs)
+                               (fstb, sndb) = splitAt (_row fs)    (_buff fs)
                                esc =(vs ,fs { _buff = fstb
                                                      ++ (if last (currline fs)
                                                             == '\n'
@@ -329,9 +329,9 @@ insRun st@(vs, fs) =  do vihsPrint True st
                                                                   == '\n'
                                                                  then 2
                                                                  else 1))
-                                                    (row fs
+                                                    (_row fs
                                                     + length (lines $ currline fs))
-                                            , _column = column fs
+                                            , _column = _column fs
                                                        - (length 
                                                           . unlines
                                                           . init
@@ -341,23 +341,23 @@ insert             :: Char -> EditorState -> IO EditorState
 insert ch (vs, fs) =  do vihsPrint True st'
                          st'' <- insRun st'
                          return $ to NORMAL st''
-                         where (fstb, sndb) = splitAt (row fs) (buff fs)
+                         where (fstb, sndb) = splitAt (_row fs) (_buff fs)
                                st' = case ch of
                                        'i' -> (vs, fs)
                                        'a' -> (vs
-                                              ,fs { _column = column fs + 1 })
+                                              ,fs { _column = _column fs + 1 })
                                        'I' -> (vs
                                               ,fs { _column = 0 })
                                        'A' -> (vs
                                               ,fs { _column = length $ currline fs })
                                        'o' -> (vs
-                                              ,fs { _row    = row fs
+                                              ,fs { _row    = _row fs
                                                   , _column = length (currline fs) + 1
                                                   , _buff   = fstb
                                                              ++ [currline fs ++ "\n"]
                                                              ++  tail sndb })
                                        'O' -> (vs
-                                              ,fs { _row    = row fs
+                                              ,fs { _row    = _row fs
                                                   , _column = 0
                                                   , _buff   = fstb
                                                              ++ ["\n" ++ currline fs]
@@ -371,7 +371,7 @@ quit          :: EditorState -> EditorState
 quit (vs, fs) =  (vs { _quited = True }, fs)
 
 write               :: FilePath -> EditorState -> IO EditorState
-write path (vs, fs) =  do writeFile path (unlines (buff fs))
+write path (vs, fs) =  do writeFile path (unlines (_buff fs))
                           return (vs, fs { _path  = path
                                          , _saved = True })
 

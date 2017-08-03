@@ -13,17 +13,17 @@ import System.Process
 import HiddenChar.HiddenChar
 import CmdParser
 
-data VihsState = VihsState { mode   :: Mode
-                           , quited :: Bool
-                           , number :: Bool
+data VihsState = VihsState { _mode   :: Mode
+                           , _quited :: Bool
+                           , _number :: Bool
                            } deriving (Show)
 
-data FileState = FileState { path   :: FilePath
-                           , buff   :: Text
-                           , row    :: Row
-                           , column :: Column
-                           , yanked :: String
-                           , saved  :: Bool
+data FileState = FileState { _path   :: FilePath
+                           , _buff   :: Text
+                           , _row    :: Row
+                           , _column :: Column
+                           , _yanked :: String
+                           , _saved  :: Bool
                            } deriving (Show)
 
 type EditorState = (VihsState, FileState)

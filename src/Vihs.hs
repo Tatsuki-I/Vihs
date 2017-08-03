@@ -309,19 +309,19 @@ insRun st@(vs, fs) =  do vihsPrint True st
                                         insRun $ if null fst
                                                    then st
                                                    else edit (init fst ++ snd)
-                                                             (vs, fs { column = column fs - 1 })
+                                                             (vs, fs { _column = column fs - 1 })
                            _      -> do print ch
                                         insRun $ edit (fst ++ [ch] ++ snd) st
                          where (fst,  snd)  = splitAt (column fs) (currline fs)
                                (fstb, sndb) = splitAt (row fs)    (buff fs)
-                               esc =(vs ,fs { buff = fstb
+                               esc =(vs ,fs { _buff = fstb
                                                      ++ (if last (currline fs)
                                                             == '\n'
                                                            then (++ [""])
                                                            else (++ []))
                                                      (lines (currline fs))
                                                      ++ tail sndb
-                                            , row = (if last (currline fs)
+                                            , _row = (if last (currline fs)
                                                         == '\n'
                                                        then id
                                                        else subtract 
@@ -331,7 +331,7 @@ insRun st@(vs, fs) =  do vihsPrint True st
                                                                  else 1))
                                                     (row fs
                                                     + length (lines $ currline fs))
-                                            , column = column fs
+                                            , _column = column fs
                                                        - (length 
                                                           . unlines
                                                           . init
@@ -345,21 +345,21 @@ insert ch (vs, fs) =  do vihsPrint True st'
                                st' = case ch of
                                        'i' -> (vs, fs)
                                        'a' -> (vs
-                                              ,fs { column = column fs + 1 })
+                                              ,fs { _column = column fs + 1 })
                                        'I' -> (vs
-                                              ,fs { column = 0 })
+                                              ,fs { _column = 0 })
                                        'A' -> (vs
-                                              ,fs { column = length $ currline fs })
+                                              ,fs { _column = length $ currline fs })
                                        'o' -> (vs
-                                              ,fs { row    = row fs
-                                                  , column = length (currline fs) + 1
-                                                  , buff   = fstb
+                                              ,fs { _row    = row fs
+                                                  , _column = length (currline fs) + 1
+                                                  , _buff   = fstb
                                                              ++ [currline fs ++ "\n"]
                                                              ++  tail sndb })
                                        'O' -> (vs
-                                              ,fs { row    = row fs
-                                                  , column = 0
-                                                  , buff   = fstb
+                                              ,fs { _row    = row fs
+                                                  , _column = 0
+                                                  , _buff   = fstb
                                                              ++ ["\n" ++ currline fs]
                                                              ++ tail sndb })
 
@@ -368,18 +368,18 @@ insert' c str line =  fst ++ str ++ snd
                       where (fst, snd) = splitAt c line
 
 quit          :: EditorState -> EditorState
-quit (vs, fs) =  (vs { quited = True }, fs)
+quit (vs, fs) =  (vs { _quited = True }, fs)
 
 write               :: FilePath -> EditorState -> IO EditorState
 write path (vs, fs) =  do writeFile path (unlines (buff fs))
-                          return (vs, fs { path  = path
-                                         , saved = True })
+                          return (vs, fs { _path  = path
+                                         , _saved = True })
 
 to               :: Mode -> EditorState -> EditorState
-to mode (vs, fs) =  (vs { mode = mode }, fs)
+to mode (vs, fs) =  (vs { _mode = mode }, fs)
 
 setnum               :: Bool -> EditorState -> EditorState
-setnum b st@(vs, fs) =  (vs { number = b }, fs)
+setnum b st@(vs, fs) =  (vs { _number = b }, fs)
 
 term   :: EditorState -> IO ()
 term _ =  system "$SHELL" >>= print

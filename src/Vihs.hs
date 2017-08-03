@@ -66,17 +66,17 @@ data ExCmd = Write  FilePath
              deriving (Show)
 
 vihsInit :: VihsState
-vihsInit =  VihsState { mode   = NORMAL
-                      , quited = False 
-                      , number = False }
+vihsInit =  VihsState { _mode   = NORMAL
+                      , _quited = False 
+                      , _number = False }
 
 fileInit           :: FilePath -> Text -> FileState
-fileInit path buff =  FileState { path   = path
-                                , buff   = buff
-                                , row    = 0
-                                , column = 0
-                                , yanked = ""
-                                , saved  = True }
+fileInit path buff =  FileState { _path   = path
+                                , _buff   = buff
+                                , _row    = 0
+                                , _column = 0
+                                , _yanked = ""
+                                , _saved  = True }
 
 editorInit       :: VihsState -> FileState -> EditorState
 editorInit vs fs =  (vs, fs)
@@ -185,7 +185,7 @@ exRun st =  do cmd <- fromMaybe ""
                    <$> runInputT defaultSettings (getInputLine ":")
                putStrLn ""
                (nvs, nfs) <- ex (parseExCmd cmd) `execStateT` st >>= vihsRun
-               return (nvs { mode = NORMAL }, nfs)
+               return (nvs { _mode = NORMAL }, nfs)
 
 ex     :: ExCmd -> StateT EditorState IO ()
 ex cmd =  case cmd of
@@ -199,8 +199,8 @@ ex cmd =  case cmd of
 
 move                :: (Row -> Row) -> (Column -> Column) ->
                        EditorState -> EditorState
-move f1 f2 (vs, fs) =  (vs ,fs { row    = newRow
-                               , column = newColumn })
+move f1 f2 (vs, fs) =  (vs ,fs { _row    = newRow
+                               , _column = newColumn })
                        where newRow    :: Row
                              newRow    |  (f1 (row fs) < 0) = 0
                                        |  (f1 (row fs) 
@@ -248,9 +248,9 @@ addLine        :: Row -> Text -> Text
 addLine r buff =  take (r + 1) buff ++ [""] ++ drop (r + 1) buff
 
 edit              :: String -> EditorState -> EditorState
-edit str (vs, fs) =  (vs, fs { buff   = fst ++ str : [] ++ tail snd
-                             , column = newColumn
-                             , saved  = False })
+edit str (vs, fs) =  (vs, fs { _buff   = fst ++ str : [] ++ tail snd
+                             , _column = newColumn
+                             , _saved  = False })
                      where (fst, snd) = splitAt (row fs) (buff fs)
                            newColumn :: Int
                            newColumn |  length str
@@ -266,7 +266,7 @@ edit str (vs, fs) =  (vs, fs { buff   = fst ++ str : [] ++ tail snd
                                                     - length (currline fs)
 
 delete               :: Count -> EditorState -> EditorState
-delete c st@(vs, fs) =  f (vs ,fs { yanked = take c snd })
+delete c st@(vs, fs) =  f (vs ,fs { _yanked = take c snd })
                         where (fst, snd) = splitAt (column fs) (currline fs)
                               f :: (EditorState -> EditorState)
                               f |  (null . currline) fs
@@ -278,14 +278,14 @@ delLine c (vs, fs) =  newSt
                       where (fst, snd) = splitAt (row fs) (buff fs)
                             newSt :: EditorState
                             newSt |  length (buff fs) <= 1
-                                               = (vs, fs { buff = [""] })
+                                               = (vs, fs { _buff = [""] })
                                   |  length (buff fs) - 1 < row fs
-                                               = (vs, fs { buff   = fst ++ drop c snd 
-                                                         , row    = length (buff fs) - 1
-                                                         , yanked = unlines $ take c snd})
-                                  |  otherwise = (vs, fs { buff   = fst ++ drop c snd 
-                                                         , row    = row fs
-                                                         , yanked = unlines $ take c snd})
+                                               = (vs, fs { _buff   = fst ++ drop c snd 
+                                                         , _row    = length (buff fs) - 1
+                                                         , _yanked = unlines $ take c snd})
+                                  |  otherwise = (vs, fs { _buff   = fst ++ drop c snd 
+                                                         , _row    = row fs
+                                                         , _yanked = unlines $ take c snd})
 
 replace            :: EditorState -> IO EditorState
 replace st@(_, fs) =  do str <- replace' (column fs) (currline fs)

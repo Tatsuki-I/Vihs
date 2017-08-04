@@ -60,7 +60,7 @@ data ExCmd = Write  FilePath
            | Number Bool
              deriving (Show)
 
-type EditorState = (VihsState, FileState)
+type EditorState = (VihsState, [FileState])
 type Line   = String
 type Text   = [Line]
 type Row    = Int
@@ -85,7 +85,7 @@ fileInit path buff =  FileState { _path   = path
                                 , _saved  = True }
 
 editorInit       :: VihsState -> FileState -> EditorState
-editorInit vs fs =  (vs, fs)
+editorInit vs fs =  (vs, [fs])
 
 vihsDefault :: EditorState
 vihsDefault =  (vihsInit, fileInit "vihstest.txt" 

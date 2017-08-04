@@ -320,7 +320,7 @@ insRun st@(vs, fs) =  do vihsPrint True st
                            _      -> do print ch
                                         insRun $ edit (fst ++ [ch] ++ snd) st
                          where (fst,  snd)  = splitAt (fs ^. column) (currline fs)
-                               (fstb, sndb) = splitAt (fs ^. row)    (fs^.buff)
+                               (fstb, sndb) = splitAt (fs ^. row)    (fs ^. buff)
                                esc =(vs, fs { _buff = fstb
                                                      ++ (if last (currline fs)
                                                             == '\n'

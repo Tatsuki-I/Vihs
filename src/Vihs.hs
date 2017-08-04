@@ -92,7 +92,7 @@ vihsDefault :: EditorState
 vihsDefault =  (vihsInit, fileInit "vihstest.txt" 
                                    [ "Hello Vihs!"
                                    , "I'm 2nd line" 
-                                   , "I'm 3rd line"])
+                                   , "I'm 3rd line" ])
 
 vihsTestRun :: IO EditorState
 vihsTestRun =  vihsRun vihsDefault
@@ -109,11 +109,11 @@ parseCmd str st =  do str' <- stream' str
                       putStrLn ""
                       print $ parseCmd' str'
                       case cmd of
-                        "j"  -> return $ Move DOWN  (fromMaybe 1 c)
-                        "k"  -> return $ Move UP    (fromMaybe 1 c)
-                        "h"  -> return $ Move LEFT  (fromMaybe 1 c)
-                        "l"  -> return $ Move RIGHT (fromMaybe 1 c)
-                        "x"  -> return $ Delete (fromMaybe 1 c)
+                        "j"  -> return . Move DOWN  $ fromMaybe 1 c
+                        "k"  -> return . Move UP    $ fromMaybe 1 c
+                        "h"  -> return . Move LEFT  $ fromMaybe 1 c
+                        "l"  -> return . Move RIGHT $ fromMaybe 1 c
+                        "x"  -> return . Delete $ fromMaybe 1 c
                         "r"  -> return $ Change REPLACE
                         "R"  -> return $ Replace 1
                         "i"  -> return $ Insert 'i'
@@ -123,7 +123,7 @@ parseCmd str st =  do str' <- stream' str
                         "o"  -> return $ Insert 'o'
                         "O"  -> return $ Insert 'O'
                         ":"  -> return $ Change EX
-                        "dd" -> return $ DelLine (fromMaybe 1 c)
+                        "dd" -> return . DelLine $ fromMaybe 1 c
                         _    -> do print str'
                                    vihsPrint False st
                                    parseCmd str' st

@@ -273,7 +273,7 @@ edit str (vs, fs) =  (vs, fs { _buff   = fst ++ str : [] ++ tail snd
                                                     - length (currline fs)
 
 delete               :: Count -> EditorState -> EditorState
-delete c st@(vs, fs) =  f (vs ,fs & yanked .~ take c snd)
+delete c st@(vs, fs) =  f (vs, fs & yanked .~ take c snd)
                         where (fst, snd) = splitAt (fs ^. column) (currline fs)
                               f :: (EditorState -> EditorState)
                               f |  (null . currline) fs
@@ -316,7 +316,7 @@ insRun st@(vs, fs) =  do vihsPrint True st
                                         insRun $ if null fst
                                                    then st
                                                    else edit (init fst ++ snd)
-                                                             (vs, fs { _column = fs ^. column - 1 })
+                                                             (vs, fs & column .~ (fs ^. column - 1))
                            _      -> do print ch
                                         insRun $ edit (fst ++ [ch] ++ snd) st
                          where (fst,  snd)  = splitAt (fs ^. column) (currline fs)

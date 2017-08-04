@@ -366,10 +366,10 @@ insert ch (vs, fs) =  do vihsPrint True st'
                                                                  ++ tail sndb })
 
 insert'            :: Column -> Line -> Line -> Line
-insert' c str line =  (splitAt c line) ^. _1 ++ str ++ (splitAt c line) ^. _2
+insert' c str line =  splitAt c line ^. _1 ++ str ++ splitAt c line ^. _2
 
 quit          :: EditorState -> EditorState
-quit (vs, fs) =  (vs&quited.~True, fs)
+quit (vs, fs) =  (vs & quited .~ True, fs)
 
 write               :: FilePath -> EditorState -> IO EditorState
 write path (vs, fs) =  do writeFile path . unlines $ fs ^. buff

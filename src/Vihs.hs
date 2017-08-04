@@ -366,8 +366,7 @@ insert ch (vs, fs) =  do vihsPrint True st'
                                                                  ++ tail sndb })
 
 insert'            :: Column -> Line -> Line -> Line
-insert' c str line =  fst ++ str ++ snd
-                      where (fst, snd) = splitAt c line
+insert' c str line =  (splitAt c line) ^. _1 ++ str ++ (splitAt c line) ^. _2
 
 quit          :: EditorState -> EditorState
 quit (vs, fs) =  (vs&quited.~True, fs)

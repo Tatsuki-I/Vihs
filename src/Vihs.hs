@@ -356,7 +356,7 @@ insert ch (vs, fs) =  do vihsPrint True st'
                                        'I' -> (vs
                                               ,fs&column.~0)
                                        'A' -> (vs
-                                              ,fs&column.~(length $ currline fs))
+                                              ,fs&column.~length (currline fs))
                                        'o' -> (vs
                                               ,fs { _row    = fs^.row
                                                   , _column = length (currline fs) + 1

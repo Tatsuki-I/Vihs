@@ -233,7 +233,7 @@ vihsPrint isIns
                             (putStrLn . unlines) ((
                               if vs ^. number
                                 then zipWith (++)
-                                             (map ((++"\t") . show)
+                                             (map ((++ "\t") . show)
                                              [1 ..])
                                 else id) (fst ++ [putCursor isIns fs]
                                               ++ tail snd))
@@ -316,7 +316,7 @@ insRun st@(vs, fs) =  do vihsPrint True st
                                         insRun $ if null fst
                                                    then st
                                                    else edit (init fst ++ snd)
-                                                             (vs, fs { _column = fs^.column - 1 })
+                                                             (vs, fs { _column = fs ^. column - 1 })
                            _      -> do print ch
                                         insRun $ edit (fst ++ [ch] ++ snd) st
                          where (fst,  snd)  = splitAt (fs ^. column) (currline fs)

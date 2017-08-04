@@ -351,23 +351,19 @@ insert ch (vs, fs) =  do vihsPrint True st'
                          where (fstb, sndb) = splitAt (fs ^. row) (fs ^. buff)
                                st' = case ch of
                                        'i' -> (vs, fs)
-                                       'a' -> (vs
-                                              ,fs & column .~ (fs ^. column + 1))
+                                       'a' -> (vs, fs & column .~ (fs ^. column + 1))
                                        'I' -> (vs, fs & column .~ 0)
-                                       'A' -> (vs
-                                              ,fs & column .~ length (currline fs))
-                                       'o' -> (vs
-                                              ,fs { _row    = fs ^. row
-                                                  , _column = length (currline fs) + 1
-                                                  , _buff   = fstb
-                                                             ++ [currline fs ++ "\n"]
-                                                             ++  tail sndb })
-                                       'O' -> (vs
-                                              ,fs { _row    = fs ^. row
-                                                  , _column = 0
-                                                  , _buff   = fstb
-                                                             ++ ["\n" ++ currline fs]
-                                                             ++ tail sndb })
+                                       'A' -> (vs, fs & column .~ length (currline fs))
+                                       'o' -> (vs, fs { _row    = fs ^. row
+                                                      , _column = length (currline fs) + 1
+                                                      , _buff   = fstb
+                                                                 ++ [currline fs ++ "\n"]
+                                                                 ++  tail sndb })
+                                       'O' -> (vs, fs { _row    = fs ^. row
+                                                      , _column = 0
+                                                      , _buff   = fstb
+                                                                 ++ ["\n" ++ currline fs]
+                                                                 ++ tail sndb })
 
 insert'            :: Column -> Line -> Line -> Line
 insert' c str line =  fst ++ str ++ snd

@@ -97,7 +97,7 @@ vihsTestRun :: IO EditorState
 vihsTestRun =  vihsRun vihsDefault
 
 currline                :: EditorState -> Line
-currline (vs, (fs : _)) =  (fs ^. buff) !! (vs ^. row)
+currline (vs, fs : _) =  (fs ^. buff) !! (vs ^. row)
 
 filelength    :: FileState -> Int
 filelength fs =  length $ fs ^. buff
@@ -315,7 +315,7 @@ insRun st@(vs, fsl@(fs : _)) =  do vihsPrint True st
                                                   insRun $ if null fst
                                                              then st
                                                              else edit (init fst ++ snd)
-                                                                       ((vs & column .~ (vs ^. column - 1)), fsl)
+                                                                       (vs & column .~ (vs ^. column - 1), fsl)
                                      _      -> do print ch
                                                   insRun $ edit (fst ++ [ch] ++ snd) st
                                    where (fst,  snd)  = splitAt (vs ^. column) (currline st)

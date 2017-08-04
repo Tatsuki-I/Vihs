@@ -21,7 +21,6 @@ data VihsState = VihsState { _mode   :: Mode
                            , _number :: Bool
                            } deriving (Show)
 
-
 data FileState = FileState { _path   :: FilePath
                            , _buff   :: Text
                            , _row    :: Row

@@ -16,18 +16,19 @@ import Data.Maybe
 import System.Process
 import HiddenChar.HiddenChar
 import CmdParser
+import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.IO as L
 
 data VihsState = VihsState { _mode   :: Mode
                            , _row    :: Row
                            , _column :: Column
-                           , _yanked :: String
+                           , _yanked :: Line
                            , _quited :: Bool
                            , _number :: Bool
                            } deriving (Show)
 
 data FileState = FileState { _path   :: FilePath
-                           , _buff   :: Text
+                           , _buff   :: File
                            , _saved  :: Bool
                            } deriving (Show)
 
@@ -63,8 +64,8 @@ data ExCmd = Write  FilePath
              deriving (Show)
 
 type EditorState = (VihsState, [FileState])
-type Line   = String
-type Text   = [Line]
+type Line   = L.Text
+type File   = [Line]
 type Row    = Int
 type Column = Int
 type Count  = Int
@@ -81,7 +82,7 @@ vihsInit =  VihsState { _mode   = NORMAL
                       , _quited = False 
                       , _number = False }
 
-fileInit           :: FilePath -> Text -> FileState
+fileInit           :: FilePath -> File -> FileState
 fileInit path buff =  FileState { _path   = path
                                 , _buff   = buff
                                 , _saved  = True }
@@ -252,7 +253,7 @@ putCursor isIns st@(vs, _) =  fst ++ (if isIns
                                    ++ tail snd)
                               where (fst, snd) = splitAt (vs ^. column) (currline st)
 
-addLine        :: Row -> Text -> Text
+addLine        :: Row -> File -> File
 addLine r buff =  take (r + 1) buff ++ [""] ++ drop (r + 1) buff
 
 edit                           :: String -> EditorState -> EditorState

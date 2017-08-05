@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Vihs
      ( VihsState
@@ -15,6 +16,7 @@ import Data.Maybe
 import System.Process
 import HiddenChar.HiddenChar
 import CmdParser
+import qualified Data.Text.Lazy.IO as L
 
 data VihsState = VihsState { _mode   :: Mode
                            , _row    :: Row

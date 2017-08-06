@@ -205,8 +205,7 @@ ex cmd =  case cmd of
 
 move                             :: (Row -> Row) -> (Column -> Column) ->
                                     EditorState -> EditorState
-move f1 f2 st@(vs, fsl@(fs : _)) =  (vs { _row    = newRow
-                                        , _column = newColumn }, fsl)
+move f1 f2 st@(vs, fsl@(fs : _)) =  (vs & pos .~ (newRow, newColumn), fsl)
                                     where newRow    :: Row
                                           newRow    |  f1 (vs ^. row) < 0 = 0
                                                     |  f1 (vs ^. row)
@@ -225,6 +224,8 @@ move f1 f2 st@(vs, fsl@(fs : _)) =  (vs { _row    = newRow
                                                        <= vs ^. column
                                                                  = length ((fs ^. buff) !! f1 (vs ^. row)) - 1
                                                     |  otherwise = f2 $ vs ^. column
+                                          pos :: Lens VihsState VihsState (Int, Int) (Int, Int)
+                                          pos = lens (\s -> (s ^. row, s ^. column)) (\s (r, c) -> s & row .~ r & column .~ c)
 
 vihsPrint                       :: Bool -> EditorState -> IO ()
 vihsPrint isIns
